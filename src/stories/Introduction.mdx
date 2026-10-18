@@ -1,0 +1,51 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Introduction" />
+
+# MyStrava — bibliothèque d'interface
+
+Ce Storybook documente les composants du tableau de bord course à pied. Toutes les stories utilisent
+les **données de démo** (`src/api/demo.ts`), générées de façon déterministe sur ~2 ans.
+
+## Organisation
+
+| Section | Contenu |
+| --- | --- |
+| **UI** | Briques génériques sans logique métier : `Tile`, `StatTile`, `BarChart`, `SegmentedControl`, `Delta` |
+| **Layout** | Structure de page : `Topbar`, `Footer`, `WelcomeScreen` |
+| **Dashboard** | Tuiles de la grille bento et page complète |
+
+## Fondations
+
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
+  {[
+    ['--accent', 'Accent Strava'],
+    ['--accent-deep', 'Accent foncé'],
+    ['--accent-soft', 'Accent doux'],
+    ['--bg', 'Fond'],
+    ['--tile', 'Tuile'],
+    ['--ink', 'Texte'],
+    ['--muted', 'Texte secondaire'],
+    ['--line', 'Bordure'],
+    ['--heat-1', 'Calendrier 1'],
+    ['--heat-2', 'Calendrier 2'],
+    ['--heat-3', 'Calendrier 3'],
+    ['--heat-4', 'Calendrier 4'],
+  ].map(([token, label]) => (
+    <div key={token} style={{ border: '1px solid var(--line)', borderRadius: 12, overflow: 'hidden' }}>
+      <div style={{ background: `var(${token})`, height: 56 }} />
+      <div style={{ padding: '6px 10px', fontSize: 12 }}>
+        <b>{label}</b><br /><code>{token}</code>
+      </div>
+    </div>
+  ))}
+</div>
+
+Les couleurs sont des variables CSS définies dans `src/styles/global.css` et redéfinies pour le thème
+sombre (`prefers-color-scheme: dark`). Changez le thème de votre système pour vérifier les deux rendus.
+
+## Bonnes pratiques
+
+- Chaque composant visuel a ses stories **à côté de son fichier** (`Composant.stories.tsx`).
+- Couvrir au minimum l'état nominal, l'état vide et les cas limites (noms longs, absence de cardio…).
+- L'onglet **Accessibility** (addon a11y) signale les problèmes de contraste et de sémantique.

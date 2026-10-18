@@ -1,9 +1,11 @@
 // Données de démonstration : ~2 ans de course à pied générés de façon déterministe,
-// au même format que la réponse de /api/dashboard.
+// au même format que data.json. Utilisées en dev quand data.json est absent, et par les stories Storybook.
 
-window.makeDemoData = function makeDemoData() {
+import type { RawRun, StravaData, Totals } from '@/types/strava';
+
+export function makeDemoData(): StravaData {
   let seed = 42;
-  const rand = () => {
+  const rand = (): number => {
     seed = (seed * 1664525 + 1013904223) % 4294967296;
     return seed / 4294967296;
   };
@@ -14,10 +16,10 @@ window.makeDemoData = function makeDemoData() {
     long: ['Sortie longue', 'Sortie longue du dimanche', 'Long run en forêt', 'Prépa semi'],
     race: ['Course 10 km', 'Semi-marathon', 'Trail des Crêtes'],
   };
-  const pick = (list) => list[Math.floor(rand() * list.length)];
-  const pad = (n) => String(n).padStart(2, '0');
+  const pick = (list: string[]) => list[Math.floor(rand() * list.length)];
+  const pad = (n: number) => String(n).padStart(2, '0');
 
-  const runs = [];
+  const runs: RawRun[] = [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const days = 730;
@@ -29,10 +31,10 @@ window.makeDemoData = function makeDemoData() {
     const dow = date.getDay();
     const progress = 1 - d / days; // 0 → 1 : on progresse au fil du temps
     const winter = [11, 0, 1].includes(date.getMonth()) ? 0.15 : 0;
-    const chance = { 0: 0.85, 2: 0.6, 4: 0.6, 6: 0.35 }[dow] ?? 0.12;
+    const chance = ({ 0: 0.85, 2: 0.6, 4: 0.6, 6: 0.35 } as Record<number, number>)[dow] ?? 0.12;
     if (rand() > chance - winter) continue;
 
-    let kind = 'easy';
+    let kind: keyof typeof names = 'easy';
     if (dow === 0) kind = rand() < 0.08 ? 'race' : 'long';
     else if (dow === 2 || dow === 4) kind = rand() < 0.55 ? 'tempo' : 'easy';
 
@@ -58,13 +60,13 @@ window.makeDemoData = function makeDemoData() {
   }
   runs.reverse(); // plus récentes d'abord, comme l'API Strava
 
-  const totals = (list) => ({
+  const totals = (list: RawRun[]): Totals => ({
     count: list.length,
     distance: list.reduce((s, r) => s + r.distance, 0),
     moving_time: list.reduce((s, r) => s + r.moving_time, 0),
     elevation_gain: list.reduce((s, r) => s + r.elevation, 0),
   });
-  const since = (n) => runs.filter((r) => Date.now() - new Date(r.date.slice(0, 10)) < n * 86400000);
+  const since = (n: number) => runs.filter((r) => Date.now() - new Date(r.date.slice(0, 10)).getTime() < n * 86400000);
   const yearStart = `${today.getFullYear()}-01-01`;
 
   return {
@@ -78,4 +80,4 @@ window.makeDemoData = function makeDemoData() {
     fetchedAt: Date.now(),
     demo: true,
   };
-};
+}

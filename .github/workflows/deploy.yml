@@ -1,0 +1,58 @@
+name: Déploiement GitHub Pages
+
+# Récupère les données Strava et les intègre au site publié, sans jamais les commiter :
+# data.json n'existe que dans l'artefact GitHub Pages.
+on:
+  schedule:
+    - cron: '17 5,17 * * *' # deux fois par jour (UTC)
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # En cas d'échec (jeton expiré, API indisponible…), rien n'est déployé : la version précédente reste en ligne.
+      - name: Récupérer les données Strava
+        run: npm run sync
+        env:
+          STRAVA_CLIENT_ID: ${{ secrets.STRAVA_CLIENT_ID }}
+          STRAVA_CLIENT_SECRET: ${{ secrets.STRAVA_CLIENT_SECRET }}
+          STRAVA_REFRESH_TOKEN: ${{ secrets.STRAVA_REFRESH_TOKEN }}
+
+      - run: npm run build
+      - run: npm run build-storybook
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
