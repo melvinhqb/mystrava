@@ -1,11 +1,12 @@
 # Déploiement
 
-Deux workflows GitHub Actions :
+Trois workflows GitHub Actions :
 
 | Workflow | Déclencheur | Rôle |
 | --- | --- | --- |
 | `deploy.yml` — Déploiement GitHub Pages | 2×/jour (05:17 et 17:17 UTC), push sur `main`, manuel | Récupère les données Strava, build de l'app et de Storybook, publication sur Pages |
 | `ci.yml` — CI | pull request | Lint, build, build Storybook (sans données Strava) |
+| `release.yml` — Release | tag `X.Y.Z` | Image Docker sur GHCR et release GitHub (voir [docker.md](docker.md)) |
 
 ## Les données ne sont jamais commitées
 

@@ -1,8 +1,10 @@
 // Récupère mes courses sur l'API Strava et les écrit dans public/data.json (lu par la page publique).
-// Exécuté avant le build par .github/workflows/deploy.yml : le fichier n'est jamais commité.
+// Exécuté avant le build par .github/workflows/deploy.yml, et périodiquement par le serveur de l'image
+// Docker (scripts/server.ts) : le fichier n'est jamais commité.
 // Usage : npm run sync (ou npx tsx scripts/fetch-strava.ts [fichier de sortie]).
 
-import { writeFile } from 'node:fs/promises';
+import { rename, writeFile } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
 import type { RawRun, StravaData, Totals } from '../src/types/strava.ts';
 
 // Sous-ensemble des réponses de l'API Strava utilisé ici.
@@ -25,7 +27,7 @@ interface StravaActivity {
 }
 
 // En local, les secrets peuvent être placés dans .env (voir .env.example).
-// Les variables déjà définies (secrets de la GitHub Action) ne sont pas écrasées.
+// Les variables déjà définies (secrets de la GitHub Action, variables du conteneur) ne sont pas écrasées.
 try {
   process.loadEnvFile();
 } catch (err) {
@@ -33,15 +35,12 @@ try {
 }
 
 const { STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, STRAVA_REFRESH_TOKEN } = process.env;
-const OUTPUT = process.argv[2] || 'public/data.json';
 const API = 'https://www.strava.com/api/v3';
 const RUN_TYPES = new Set(['Run', 'TrailRun', 'VirtualRun']);
 const MAX_PAGES = 10; // 10 × 200 activités, pour rester sous les limites de l'API
 
-if (!STRAVA_CLIENT_ID || !STRAVA_CLIENT_SECRET || !STRAVA_REFRESH_TOKEN) {
-  console.error('Secrets manquants : STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET et STRAVA_REFRESH_TOKEN sont requis.');
-  process.exit(1);
-}
+/** Les trois secrets Strava sont-ils définis ? */
+export const hasStravaSecrets = () => Boolean(STRAVA_CLIENT_ID && STRAVA_CLIENT_SECRET && STRAVA_REFRESH_TOKEN);
 
 async function accessToken(): Promise<string> {
   const r = await fetch('https://www.strava.com/oauth/token', {
@@ -62,7 +61,11 @@ async function accessToken(): Promise<string> {
   return t.access_token;
 }
 
-async function main() {
+/** Écrit les données Strava dans `output` et renvoie le nombre de sorties. */
+export async function syncStrava(output: string): Promise<number> {
+  if (!hasStravaSecrets()) {
+    throw new Error('Secrets manquants : STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET et STRAVA_REFRESH_TOKEN sont requis.');
+  }
   const token = await accessToken();
   const get = async <T>(endpoint: string): Promise<T> => {
     const r = await fetch(API + endpoint, { headers: { Authorization: `Bearer ${token}` } });
@@ -107,11 +110,19 @@ async function main() {
     runs,
     fetchedAt: Date.now(),
   };
-  await writeFile(OUTPUT, JSON.stringify(data, null, 1) + '\n');
-  console.log(`${runs.length} sorties écrites dans ${OUTPUT}`);
+  // Écriture puis renommage : le serveur ne sert jamais un fichier à moitié écrit.
+  await writeFile(`${output}.tmp`, JSON.stringify(data, null, 1) + '\n');
+  await rename(`${output}.tmp`, output);
+  return runs.length;
 }
 
-main().catch((err: Error) => {
-  console.error(err.message);
-  process.exit(1);
-});
+// Exécuté directement (et non importé par le serveur) : synchronise une fois puis s'arrête.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const output = process.argv[2] || 'public/data.json';
+  syncStrava(output)
+    .then((count) => console.log(`${count} sorties écrites dans ${output}`))
+    .catch((err: Error) => {
+      console.error(err.message);
+      process.exit(1);
+    });
+}

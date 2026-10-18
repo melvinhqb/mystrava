@@ -1,0 +1,12 @@
+# Ne jamais envoyer de données ni de secrets dans le contexte de build
+.env
+.env.*
+public/data.json
+
+.git
+.github
+node_modules
+dist
+storybook-static
+docs
+*.log
