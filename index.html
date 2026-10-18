@@ -22,35 +22,19 @@
         <button type="button" data-period="365" aria-pressed="true">1 an</button>
         <button type="button" data-period="all">Tout</button>
       </div>
-      <button type="button" class="icon-btn" id="refresh" title="Actualiser depuis Strava" aria-label="Actualiser">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>
-      </button>
-      <button type="button" class="link-btn" id="logout">Déconnexion</button>
     </nav>
   </header>
 
   <main>
-    <!-- Écran d'accueil -->
+    <!-- Données absentes -->
     <section class="welcome" id="welcome" hidden>
       <div class="tile welcome-hero">
         <p class="eyebrow">Tableau de bord course à pied</p>
-        <h1>Toutes vos sorties,<br>en un coup d'œil.</h1>
-        <p class="muted">Connectez votre compte Strava pour analyser distance, allure, dénivelé, régularité et records.</p>
-        <form class="setup" id="setup" hidden>
-          <p class="note">
-            Créez une application sur <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener">strava.com/settings/api</a>
-            avec <code id="callback-domain">localhost</code> comme <em>Authorization Callback Domain</em>, puis collez ses identifiants.
-            Ils restent uniquement dans ce navigateur.
-          </p>
-          <label>Client ID<input id="client-id" inputmode="numeric" autocomplete="off" required></label>
-          <label>Client Secret<input id="client-secret" type="password" autocomplete="off" required></label>
-        </form>
+        <h1>Données bientôt<br>disponibles.</h1>
+        <p class="muted" id="welcome-text">Les sorties Strava n'ont pas encore été synchronisées. Lancez la GitHub Action « Synchronisation Strava » pour générer <code>data.json</code>.</p>
         <div class="welcome-actions">
-          <button type="button" class="btn-strava" id="connect">Se connecter avec Strava</button>
           <a class="btn-ghost" href="?demo">Voir la démo</a>
         </div>
-        <button type="button" class="link-btn" id="edit-app" hidden>Modifier l'application Strava</button>
-        <p class="note error" id="auth-error" hidden></p>
       </div>
     </section>
 
@@ -148,7 +132,7 @@
       <article class="tile span-2 rows-2 recent">
         <header class="tile-head">
           <h2>Dernières sorties</h2>
-          <a class="muted small-link" href="https://www.strava.com/athlete/training" target="_blank" rel="noopener">Tout voir sur Strava ↗</a>
+          <a class="muted small-link" id="profile-link" href="https://www.strava.com/" target="_blank" rel="noopener">Tout voir sur Strava ↗</a>
         </header>
         <ol class="run-list" id="recent"></ol>
       </article>

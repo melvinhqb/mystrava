@@ -146,43 +146,6 @@ code {
   color: #fff;
 }
 
-.icon-btn {
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  background: var(--tile);
-  box-shadow: var(--shadow);
-  cursor: pointer;
-  color: var(--ink);
-}
-
-.icon-btn svg {
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.icon-btn.spinning svg { animation: spin 0.9s linear infinite; }
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.link-btn {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-  text-decoration: none;
-  padding: 8px 10px;
-}
-
-.link-btn:hover { color: var(--strava); }
-
 button:focus-visible, a:focus-visible {
   outline: 2px solid var(--strava);
   outline-offset: 2px;
@@ -569,7 +532,7 @@ main {
   margin-top: 8px;
 }
 
-.btn-strava, .btn-ghost {
+.btn-ghost {
   display: inline-flex;
   align-items: center;
   min-height: 46px;
@@ -579,58 +542,8 @@ main {
   text-decoration: none;
 }
 
-.btn-strava { background: var(--strava); color: #fff; }
-.btn-strava:hover { background: var(--strava-deep); }
-.btn-strava[aria-disabled="true"] { opacity: .45; pointer-events: none; }
 .btn-ghost { border: 1.5px solid var(--line); }
 .btn-ghost:hover { border-color: var(--strava); color: var(--strava); }
-
-.setup {
-  display: grid;
-  gap: 12px;
-}
-
-.setup label {
-  display: grid;
-  gap: 4px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-}
-
-.setup input {
-  font: inherit;
-  font-size: 16px;
-  color: var(--ink);
-  background: var(--tile-alt);
-  border: 1.5px solid var(--line);
-  border-radius: 12px;
-  padding: 10px 12px;
-  min-height: 44px;
-}
-
-.setup input:focus {
-  outline: none;
-  border-color: var(--strava);
-}
-
-.setup a { color: var(--strava); }
-
-button.btn-strava { border: 0; font: inherit; font-weight: 700; cursor: pointer; }
-
-button.link-btn {
-  border: 0;
-  background: none;
-  font-family: inherit;
-  cursor: pointer;
-  justify-self: start;
-  padding-left: 0;
-}
-
-.welcome-hero > button.link-btn { align-self: flex-start; }
-
-.note { font-size: 13px; color: var(--muted); }
-.note.error { color: #D1432B; }
 
 .status {
   text-align: center;
