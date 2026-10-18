@@ -1,0 +1,13 @@
+{
+  "name": "mystrava",
+  "version": "1.0.0",
+  "description": "Tableau de bord bento de mes performances en course à pied, alimenté par l'API Strava",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
