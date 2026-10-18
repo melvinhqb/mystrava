@@ -1,6 +1,6 @@
-# MyStrava
+# Course à pied
 
-Page publique de mes performances en course à pied, en style **bento**, responsive et aux couleurs Strava (`#FC4C02`). Le site est statique et déployé avec **GitHub Pages** depuis `main`.
+Page publique de mes performances en course à pied, en style **bento**, responsive et en orange `#FC4C02`. Le site est statique et déployé avec **GitHub Pages** depuis `main`.
 
 ## Fonctionnement
 
