@@ -3,6 +3,23 @@
 const $ = (id) => document.getElementById(id);
 const DAY = 86400000;
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+// Distances des « meilleurs efforts » Strava : [clé dans data.json, libellé, mètres].
+const BEST_DISTANCES = [
+  ['400m', '400 m', 400],
+  ['1/2 mile', '½ mile', 804.67],
+  ['1K', '1 km', 1000],
+  ['1 mile', '1 mile', 1609.34],
+  ['2 mile', '2 miles', 3218.69],
+  ['5K', '5 km', 5000],
+  ['10K', '10 km', 10000],
+  ['15K', '15 km', 15000],
+  ['10 mile', '10 miles', 16093.4],
+  ['20K', '20 km', 20000],
+  ['Half-Marathon', 'Semi-marathon', 21097.5],
+  ['30K', '30 km', 30000],
+  ['Marathon', 'Marathon', 42195],
+  ['50K', '50 km', 50000],
+];
 const MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
 
 const state = { data: null, period: '365', mounts: [] };
@@ -29,6 +46,13 @@ const paceOf = (runs) => {
   const d = runs.reduce((s, r) => s + r.distance, 0);
   return d ? runs.reduce((s, r) => s + r.moving_time, 0) / (d / 1000) : NaN;
 };
+
+function clock(s) {
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = String(Math.round(s % 60)).padStart(2, '0');
+  return h ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${m}:${sec}`;
+}
 
 const shortDate = (d) => `${d.getDate()} ${MONTHS[d.getMonth()]}`;
 
@@ -295,6 +319,36 @@ function renderRecords(runs) {
   ].join('');
 }
 
+function renderBests(runs, allRuns, demo) {
+  const analyzed = allRuns.filter((r) => r.efforts).length;
+  const pending = allRuns.length - analyzed;
+  $('bests-caption').textContent = pending && analyzed
+    ? `Analyse en cours : ${analyzed}/${allRuns.length} sorties`
+    : 'temps écoulé, chrono le plus rapide sur la période';
+
+  const cards = BEST_DISTANCES.map(([key, label, meters]) => {
+    let best = null;
+    for (const r of runs) {
+      const t = r.efforts?.[key];
+      if (t && (!best || t < best.time)) best = { time: t, run: r };
+    }
+    if (!best) return '';
+    const isNew = Date.now() - best.run._date.getTime() < 30 * DAY;
+    const href = demo ? '#' : `https://www.strava.com/activities/${encodeURIComponent(best.run.id)}`;
+    return `<li><a href="${href}" ${demo ? '' : 'target="_blank" rel="noopener"'} title="${escapeHtml(best.run.name)}">
+      ${isNew ? '<span class="b-new">Récent</span>' : ''}
+      <span class="b-dist">${label}</span>
+      <span class="b-time">${clock(best.time)}</span>
+      <span class="b-pace">${pace(best.time / (meters / 1000))} /km</span>
+      <span class="b-meta">${shortDate(best.run._date)} ${best.run._date.getFullYear()} · ${escapeHtml(best.run.name)}</span>
+    </a></li>`;
+  }).join('');
+
+  $('bests').innerHTML = cards || `<li class="empty">${analyzed
+    ? 'Aucun meilleur temps sur la période'
+    : 'Les meilleurs temps apparaîtront après la prochaine synchronisation Strava.'}</li>`;
+}
+
 function renderStreak(allRuns) {
   const { current, best } = streaks(allRuns);
   $('streak-current').innerHTML = `${current}<small> sem.</small>`;
@@ -416,6 +470,7 @@ function render() {
   renderWeekly(all);
   renderPaceTrend(all);
   renderRecords(runs);
+  renderBests(runs, all, data.demo);
   renderStreak(all);
   renderHeartRate(runs);
   renderHeatmap(all);

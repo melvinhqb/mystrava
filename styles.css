@@ -360,6 +360,74 @@ main {
 .record-list .r-value { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
 .record-list .r-meta { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* ---------- Meilleurs temps ---------- */
+
+.best-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.best-grid a {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--tile-alt);
+  border: 1px solid var(--line);
+  text-decoration: none;
+  position: relative;
+}
+
+.best-grid a:hover { border-color: var(--accent); }
+
+.best-grid .b-dist {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.best-grid .b-time {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin-top: 2px;
+}
+
+.best-grid .b-pace { font-size: 13px; font-weight: 600; }
+
+.best-grid .b-meta {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.best-grid .b-new {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
+.best-grid .empty { grid-column: 1 / -1; }
+
 /* ---------- Régularité ---------- */
 
 .week-dots {

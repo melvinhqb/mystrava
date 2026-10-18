@@ -2,13 +2,16 @@
 // Exécuté par la GitHub Action .github/workflows/strava.yml avec les secrets du dépôt.
 // Node.js >= 18, sans dépendance.
 
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 
 const { STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, STRAVA_REFRESH_TOKEN } = process.env;
 const OUTPUT = process.argv[2] || 'data.json';
 const API = 'https://www.strava.com/api/v3';
 const RUN_TYPES = new Set(['Run', 'TrailRun', 'VirtualRun']);
 const MAX_PAGES = 10; // 10 × 200 activités, pour rester sous les limites de l'API
+// Les meilleurs temps (400 m, 1 km, 5 km…) ne sont fournis que par le détail de chaque activité :
+// une requête par sortie, plafonnée par exécution pour rester sous 100 requêtes / 15 min.
+const DETAIL_BUDGET = Number(process.env.STRAVA_DETAIL_BUDGET) || 80;
 
 if (!STRAVA_CLIENT_ID || !STRAVA_CLIENT_SECRET || !STRAVA_REFRESH_TOKEN) {
   console.error('Secrets manquants : STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET et STRAVA_REFRESH_TOKEN sont requis.');
@@ -34,11 +37,23 @@ async function accessToken() {
   return t.access_token;
 }
 
+// Meilleurs temps déjà connus, repris du data.json précédent : id d'activité → { "5K": secondes, … }.
+async function previousEfforts() {
+  try {
+    const previous = JSON.parse(await readFile(OUTPUT, 'utf8'));
+    return new Map(previous.runs.filter((r) => r.efforts).map((r) => [r.id, r.efforts]));
+  } catch {
+    return new Map();
+  }
+}
+
 async function main() {
   const token = await accessToken();
   const get = async (endpoint) => {
     const r = await fetch(API + endpoint, { headers: { Authorization: `Bearer ${token}` } });
-    if (!r.ok) throw new Error(`Erreur API Strava sur ${endpoint} (${r.status}) : ${await r.text()}`);
+    if (!r.ok) {
+      throw Object.assign(new Error(`Erreur API Strava sur ${endpoint} (${r.status}) : ${await r.text()}`), { status: r.status });
+    }
     return r.json();
   };
 
@@ -66,6 +81,29 @@ async function main() {
     }
     if (batch.length < 200) break;
   }
+
+  // Récupère les meilleurs temps des sorties pas encore analysées, des plus récentes aux plus anciennes.
+  const known = await previousEfforts();
+  let fetched = 0;
+  let limited = false;
+  for (const run of runs) {
+    if (known.has(run.id)) {
+      run.efforts = known.get(run.id);
+      continue;
+    }
+    if (limited || fetched >= DETAIL_BUDGET) continue;
+    try {
+      const detail = await get(`/activities/${run.id}`);
+      fetched++;
+      run.efforts = Object.fromEntries((detail.best_efforts || []).map((e) => [e.name, e.elapsed_time]));
+    } catch (err) {
+      if (err.status !== 429) throw err;
+      console.warn('::warning::Limite de requêtes Strava atteinte : la suite des meilleurs temps sera récupérée à la prochaine exécution.');
+      limited = true;
+    }
+  }
+  const pending = runs.filter((r) => !r.efforts).length;
+  console.log(`Meilleurs temps : ${fetched} sorties analysées, ${pending} restantes.`);
 
   const data = {
     athlete: {

@@ -56,6 +56,15 @@ window.makeDemoData = function makeDemoData() {
       kudos: Math.floor(rand() * 25),
     });
   }
+  // Meilleurs efforts : sur une distance plus courte que la sortie, on court un peu plus vite.
+  const efforts = [['400m', 400], ['1/2 mile', 804.67], ['1K', 1000], ['1 mile', 1609.34], ['2 mile', 3218.69], ['5K', 5000],
+    ['10K', 10000], ['15K', 15000], ['10 mile', 16093.4], ['20K', 20000], ['Half-Marathon', 21097.5]];
+  for (const r of runs) {
+    const pace = r.moving_time / (r.distance / 1000);
+    r.efforts = Object.fromEntries(efforts
+      .filter(([, m]) => m <= r.distance)
+      .map(([key, m]) => [key, Math.round((m / 1000) * pace * Math.pow(m / r.distance, 0.06) * (0.97 + rand() * 0.06))]));
+  }
   runs.reverse(); // plus récentes d'abord, comme l'API Strava
 
   const totals = (list) => ({
