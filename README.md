@@ -10,7 +10,6 @@ GitHub Action (2×/jour)  ──API Strava──▶  data.json (commité sur mai
 ```
 
 - `.github/workflows/strava.yml` exécute `scripts/fetch-strava.mjs` deux fois par jour (et à la demande). Le script utilise les secrets du dépôt pour interroger l'API Strava et écrit `data.json`, commité seulement si les données ont changé.
-- Les meilleurs temps ne sont disponibles que dans le détail de chaque activité : le script les récupère une sortie à la fois (80 au plus par exécution, pour respecter la limite de 100 requêtes / 15 min) et les conserve dans `data.json`, si bien que seules les nouvelles sorties sont ensuite interrogées.
 - La page (`index.html`, `styles.css`, `app.js`) lit `data.json` : aucun secret ni connexion côté visiteur.
 - Seuls les champs nécessaires sont publiés (nom, date, distance, durée, dénivelé, vitesse, FC moyenne, kudos) : ni tracé GPS ni position.
 - `?demo` à la fin de l'URL affiche des données fictives (`demo.js`).
@@ -56,7 +55,6 @@ Si l'action échoue au moment du `git push`, vérifiez dans *Settings → Action
 - Distance, nombre de sorties, temps de course, allure moyenne et dénivelé, comparés à la période précédente (30 j, 90 j, 1 an ou tout)
 - Volume hebdomadaire sur 12 semaines et tendance sur 26 semaines
 - Évolution de l'allure moyenne mois par mois
-- Meilleurs temps par distance (400 m, ½ mile, 1 km, 1 mile, 2 miles, 5 km, 10 km, 15 km, 10 miles, 20 km, semi, 30 km, marathon, 50 km), d'après les « meilleurs efforts » Strava
 - Records : plus longue sortie, allure la plus rapide (≥ 5 km), plus gros dénivelé, meilleure semaine
 - Régularité : semaines consécutives avec au moins une sortie
 - Fréquence cardiaque moyenne
