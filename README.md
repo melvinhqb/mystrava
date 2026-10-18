@@ -7,6 +7,7 @@
 **Tableau de bord public de mes performances en course à pied, alimenté par l'API Strava.**
 
 [![Déploiement](https://github.com/melvinhqb/mystrava/actions/workflows/deploy.yml/badge.svg)](https://github.com/melvinhqb/mystrava/actions/workflows/deploy.yml)
+[![Release](https://img.shields.io/github/v/release/melvinhqb/mystrava)](https://github.com/melvinhqb/mystrava/releases)
 
 [Site](https://melvinhqb.github.io/mystrava/) · [Storybook](https://melvinhqb.github.io/mystrava/storybook/)
 
@@ -39,7 +40,7 @@ Seules les activités `Run`, `TrailRun` et `VirtualRun` publiques sont prises en
 | Composants | [Storybook](https://storybook.js.org) (+ addon accessibilité) |
 | Qualité | ESLint, `tsc` en mode strict |
 | Données | API Strava → `data.json` généré au déploiement (jamais commité) |
-| Hébergement | GitHub Pages |
+| Hébergement | GitHub Pages, ou image Docker publiée sur GHCR |
 
 ## Démarrage rapide
 
@@ -63,6 +64,18 @@ npm run storybook    # http://localhost:6006
 | `npm run build-storybook` | Build statique de Storybook dans `dist/storybook/` |
 | `npm run sync` | Récupère les données Strava dans `public/data.json` (secrets dans `.env`, voir `.env.example`) |
 
+## Docker
+
+Chaque release publie une image sur GitHub Container Registry. Elle ne contient ni données ni secrets :
+elle récupère les données Strava au démarrage, puis toutes les 12 h.
+
+```sh
+docker run -d -p 8080:8080 --env-file .env ghcr.io/melvinhqb/mystrava:latest
+```
+
+Pour publier une nouvelle version : `npm version minor && git push --follow-tags`.
+Détails dans [docs/docker.md](docs/docker.md).
+
 ## Structure
 
 ```
@@ -80,7 +93,8 @@ src/
 ├── styles/         # CSS global et variables de thème
 └── types/          # Types du format data.json
 scripts/
-└── fetch-strava.ts # Synchronisation avec l'API Strava
+├── fetch-strava.ts # Synchronisation avec l'API Strava
+└── server.ts       # Serveur de l'image Docker
 ```
 
 Détails dans [docs/architecture.md](docs/architecture.md).
@@ -91,3 +105,4 @@ Détails dans [docs/architecture.md](docs/architecture.md).
 - [Développement et Storybook](docs/development.md) — travailler sur l'interface, écrire des stories
 - [Configuration Strava](docs/strava-setup.md) — créer l'application Strava et les secrets du dépôt
 - [Déploiement](docs/deployment.md) — GitHub Actions et GitHub Pages
+- [Docker](docs/docker.md) — image, release et hébergement autonome
