@@ -1,6 +1,6 @@
 # MyStrava
 
-Tableau de bord de mes performances en course à pied, en style **bento**, responsive et aux couleurs Strava (`#FC4C02`). Les données viennent de l'**API Strava**.
+Tableau de bord de mes performances en course à pied, en style **bento**, responsive et aux couleurs Strava (`#FC4C02`). Les données viennent de l'**API Strava**. Le site est 100 % statique et déployé avec **GitHub Pages** depuis `main`.
 
 ## Statistiques affichées
 
@@ -15,24 +15,20 @@ Tableau de bord de mes performances en course à pied, en style **bento**, respo
 
 Seules les activités `Run`, `TrailRun` et `VirtualRun` sont prises en compte.
 
-## Démarrage
+## Connexion à Strava
 
-Node.js 18 ou plus, aucune dépendance à installer.
+1. Créez une application sur <https://www.strava.com/settings/api> avec comme *Authorization Callback Domain* le domaine du site (`melvinhqb.github.io`, ou `localhost` en local).
+2. Ouvrez le site, collez le **Client ID** et le **Client Secret** de l'application, puis cliquez sur **Se connecter avec Strava**.
 
-1. Créez une application Strava sur <https://www.strava.com/settings/api> et indiquez `localhost` comme *Authorization Callback Domain*.
-2. Copiez `.env.example` vers `.env` et renseignez `STRAVA_CLIENT_ID` et `STRAVA_CLIENT_SECRET`.
-3. Lancez :
+GitHub Pages ne permet pas d'exécuter de serveur : l'échange OAuth se fait donc directement depuis le navigateur. Les identifiants de l'application et les jetons sont stockés dans le `localStorage` du navigateur, jamais dans le dépôt. « Déconnexion » efface les jetons et les données en cache.
 
-   ```sh
-   npm start
-   ```
-
-4. Ouvrez <http://localhost:3000> et cliquez sur **Se connecter avec Strava**.
-
-Pour tester sans compte : <http://localhost:3000/?demo> (données fictives).
+Pour tester sans compte, ajoutez `?demo` à l'URL (données fictives).
 
 ## Fonctionnement
 
-- `server.js` gère l'OAuth Strava (le `client_secret` ne quitte jamais le serveur), rafraîchit le jeton automatiquement et expose `/api/dashboard`. Les sessions sont en mémoire : il faut se reconnecter après un redémarrage du serveur.
-- Les activités sont récupérées par pages de 200 (2 000 au plus, pour respecter les limites de l'API Strava : 100 requêtes / 15 min) et mises en cache 10 minutes. Le bouton ↻ force une nouvelle synchronisation.
-- `public/` contient la page : la grille bento (`styles.css`), le calcul des statistiques et les graphiques SVG (`app.js`), et le générateur de données de démo (`demo.js`). La page suit le thème clair ou sombre du système.
+- `index.html` : structure de la grille bento.
+- `styles.css` : style bento, thème clair et sombre, points de rupture responsive (4, 2 puis 1 colonne).
+- `app.js` : OAuth Strava et rafraîchissement automatique du jeton, récupération des activités (pages de 200, 2 000 au plus pour respecter les limites de l'API : 100 requêtes / 15 min), cache de 10 minutes, calcul des statistiques et graphiques SVG. Le bouton ↻ force une nouvelle synchronisation.
+- `demo.js` : générateur de données de démonstration.
+
+En local : `python3 -m http.server 8000`, puis ouvrez <http://localhost:8000>.
