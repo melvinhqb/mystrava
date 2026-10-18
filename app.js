@@ -154,9 +154,14 @@ function streaks(runs) {
 
 function renderAthlete(data) {
   const a = data.athlete;
-  const img = a.profile && a.profile.startsWith('http') ? `<img src="${escapeHtml(a.profile)}" alt="">` : '';
-  $('athlete').innerHTML = `${img}<span><strong>${escapeHtml(`${a.firstname || ''} ${a.lastname || ''}`.trim())}</strong>${a.city ? ` · ${escapeHtml(a.city)}` : ''}${data.demo ? ' · <em>démo</em>' : ''}</span>`;
-  $('athlete').hidden = false;
+  const name = `${a.firstname || ''} ${a.lastname || ''}`.trim();
+  const avatar = $('athlete-avatar');
+  avatar.hidden = false;
+  if (a.profile && a.profile.startsWith('http')) avatar.innerHTML = `<img src="${escapeHtml(a.profile)}" alt="">`;
+  else avatar.textContent = (a.firstname || '?').charAt(0).toUpperCase();
+  $('athlete-name').textContent = name || 'Course à pied';
+  $('athlete-meta').textContent = ['Course à pied', a.city, data.demo ? 'démo' : ''].filter(Boolean).join(' · ');
+  if (name) document.title = `${name} · Course à pied`;
 }
 
 function renderKpis(runs, prevRuns, bounds) {
@@ -186,7 +191,9 @@ function renderKpis(runs, prevRuns, bounds) {
   if (isFinite(p) && isFinite(prevP)) {
     const diff = Math.round(prevP - p);
     const cls = diff >= 0 ? 'delta-up' : 'delta-down';
-    $('kpi-pace-sub').innerHTML = `<span class="${cls}">${diff >= 0 ? '−' : '+'}${Math.abs(diff)} s/km</span> vs période préc.`;
+    $('kpi-pace-sub').innerHTML = diff === 0
+      ? 'Stable vs période préc.'
+      : `<span class="${cls}">${diff > 0 ? '−' : '+'}${Math.abs(diff)} s/km</span> vs période préc.`;
   } else {
     $('kpi-pace-sub').textContent = isFinite(p) ? `${nf(1).format(3600 / p)} km/h` : '';
   }
@@ -445,13 +452,13 @@ async function loadData() {
 
 async function init() {
   try {
-    const saved = localStorage.getItem('mystrava.period');
+    const saved = localStorage.getItem('running.period');
     if (saved) state.period = saved;
   } catch { /* stockage indisponible */ }
 
   document.querySelectorAll('[data-period]').forEach((btn) => btn.addEventListener('click', () => {
     state.period = btn.dataset.period;
-    try { localStorage.setItem('mystrava.period', state.period); } catch { /* ignoré */ }
+    try { localStorage.setItem('running.period', state.period); } catch { /* ignoré */ }
     render();
   }));
 

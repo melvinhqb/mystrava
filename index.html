@@ -3,18 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MyStrava · Course à pied</title>
+  <title>Course à pied</title>
   <meta name="theme-color" content="#FC4C02">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">
-      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.6 2 3 15h4l2.6-5.1L12.2 15h4z"/><path d="m16.2 15-2 4-2-4H9.3l4.9 9 4.9-9z" opacity=".6"/></svg>
-      <span>MyStrava</span>
+    <div class="athlete" id="athlete">
+      <span class="avatar" id="athlete-avatar" aria-hidden="true" hidden></span>
+      <div>
+        <p class="athlete-name" id="athlete-name">Course à pied</p>
+        <p class="athlete-meta" id="athlete-meta"></p>
+      </div>
     </div>
-    <div class="athlete" id="athlete" hidden></div>
     <nav class="actions" id="actions" hidden>
       <div class="segmented" role="group" aria-label="Période">
         <button type="button" data-period="30">30 j</button>
@@ -132,15 +134,15 @@
       <article class="tile span-2 rows-2 recent">
         <header class="tile-head">
           <h2>Dernières sorties</h2>
-          <a class="muted small-link" id="profile-link" href="https://www.strava.com/" target="_blank" rel="noopener">Tout voir sur Strava ↗</a>
+          <a class="muted small-link" id="profile-link" href="https://www.strava.com/" target="_blank" rel="noopener">Tout voir ↗</a>
         </header>
         <ol class="run-list" id="recent"></ol>
       </article>
 
       <article class="tile span-2 totals">
         <header class="tile-head">
-          <h2>Totaux Strava</h2>
-          <span class="muted">depuis l'API athlète</span>
+          <h2>Totaux</h2>
+          <span class="muted">toutes sorties de course</span>
         </header>
         <div class="totals-grid" id="totals"></div>
       </article>
