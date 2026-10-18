@@ -429,7 +429,6 @@ function show(data) {
   $('actions').hidden = false;
   $('refresh').hidden = Boolean(data.demo);
   $('logout').textContent = data.demo ? 'Quitter la démo' : 'Déconnexion';
-  $('logout').href = data.demo ? '/' : '/auth/logout';
   $('fetched-at').textContent = data.demo
     ? 'Mode démo : données fictives'
     : `${data.runs.length} sorties · synchronisé le ${new Date(data.fetchedAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}`;
@@ -437,20 +436,151 @@ function show(data) {
   render();
 }
 
-async function loadDashboard(refresh = false) {
-  const r = await fetch(`/api/dashboard${refresh ? '?refresh' : ''}`, { credentials: 'same-origin' });
-  if (r.status === 401) return showWelcome(true);
-  const body = await r.json();
-  if (!r.ok) throw new Error(body.error || `Erreur ${r.status}`);
-  show(body);
+// ---------- API Strava (directement depuis le navigateur) ----------
+
+// GitHub Pages n'héberge que des fichiers statiques : l'échange OAuth se fait ici,
+// avec l'application Strava de l'utilisateur, dont les identifiants restent dans son navigateur.
+const STRAVA_API = 'https://www.strava.com/api/v3';
+const RUN_TYPES = new Set(['Run', 'TrailRun', 'VirtualRun']);
+const MAX_PAGES = 10; // 10 × 200 activités, pour rester sous les limites de l'API
+const CACHE_TTL = 10 * 60 * 1000;
+const KEYS = { app: 'mystrava.app', tokens: 'mystrava.tokens', cache: 'mystrava.cache', state: 'mystrava.oauthState' };
+
+const store = {
+  get(key) {
+    try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* stockage plein ou indisponible */ }
+  },
+  remove(key) {
+    try { localStorage.removeItem(key); } catch { /* ignoré */ }
+  },
+};
+
+const redirectUri = () => location.origin + location.pathname;
+
+async function tokenRequest(params) {
+  const app = store.get(KEYS.app);
+  const r = await fetch('https://www.strava.com/oauth/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ client_id: app.clientId, client_secret: app.clientSecret, ...params }),
+  });
+  if (!r.ok) throw new Error(r.status === 401 || r.status === 400 ? 'Identifiants Strava refusés : vérifiez le Client ID et le Client Secret.' : `Échec de la connexion Strava (${r.status})`);
+  return r.json();
 }
 
-function showWelcome(configured, error = false) {
+async function accessToken() {
+  const tokens = store.get(KEYS.tokens);
+  // Strava renvoie expires_at en secondes ; on rafraîchit une minute avant.
+  if (tokens.expires_at * 1000 - 60_000 < Date.now()) {
+    const t = await tokenRequest({ grant_type: 'refresh_token', refresh_token: tokens.refresh_token });
+    Object.assign(tokens, { access_token: t.access_token, refresh_token: t.refresh_token, expires_at: t.expires_at });
+    store.set(KEYS.tokens, tokens);
+  }
+  return tokens.access_token;
+}
+
+async function stravaGet(endpoint) {
+  const r = await fetch(STRAVA_API + endpoint, { headers: { Authorization: `Bearer ${await accessToken()}` } });
+  if (r.status === 401) throw Object.assign(new Error('Session Strava expirée, reconnectez-vous.'), { status: 401 });
+  if (r.status === 429) throw new Error('Limite de requêtes Strava atteinte, réessayez dans 15 minutes.');
+  if (!r.ok) throw new Error(`Erreur API Strava (${r.status})`);
+  return r.json();
+}
+
+async function fetchRuns() {
+  const runs = [];
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const batch = await stravaGet(`/athlete/activities?per_page=200&page=${page}`);
+    for (const a of batch) {
+      if (!RUN_TYPES.has(a.sport_type || a.type)) continue;
+      runs.push({
+        id: a.id,
+        name: a.name,
+        type: a.sport_type || a.type,
+        date: a.start_date_local,
+        distance: a.distance,
+        moving_time: a.moving_time,
+        elevation: a.total_elevation_gain,
+        average_speed: a.average_speed,
+        average_heartrate: a.has_heartrate ? a.average_heartrate : null,
+        kudos: a.kudos_count,
+      });
+    }
+    if (batch.length < 200) break;
+  }
+  return runs;
+}
+
+async function loadDashboard(refresh = false) {
+  const cached = store.get(KEYS.cache);
+  if (!refresh && cached && Date.now() - cached.fetchedAt < CACHE_TTL) return show(cached);
+
+  const { athlete: a } = store.get(KEYS.tokens);
+  const [runs, stats] = await Promise.all([fetchRuns(), stravaGet(`/athletes/${a.id}/stats`)]);
+  const data = {
+    athlete: { firstname: a.firstname, lastname: a.lastname, profile: a.profile_medium || a.profile, city: a.city },
+    stats: { all: stats.all_run_totals, ytd: stats.ytd_run_totals, recent: stats.recent_run_totals },
+    runs,
+    fetchedAt: Date.now(),
+  };
+  store.set(KEYS.cache, data);
+  show(JSON.parse(JSON.stringify(data)));
+}
+
+function login() {
+  const oauthState = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  store.set(KEYS.state, oauthState);
+  const auth = new URL('https://www.strava.com/oauth/authorize');
+  auth.search = new URLSearchParams({
+    client_id: store.get(KEYS.app).clientId,
+    redirect_uri: redirectUri(),
+    response_type: 'code',
+    approval_prompt: 'auto',
+    scope: 'read,activity:read_all',
+    state: oauthState,
+  });
+  location.assign(auth.toString());
+}
+
+// Retour de Strava : ?code=…&state=… (ou ?error=access_denied).
+async function handleCallback(params) {
+  history.replaceState(null, '', redirectUri());
+  const expected = store.get(KEYS.state);
+  store.remove(KEYS.state);
+  if (params.get('error') || params.get('state') !== expected) throw new Error('Connexion à Strava annulée ou invalide.');
+  const t = await tokenRequest({ code: params.get('code'), grant_type: 'authorization_code' });
+  store.set(KEYS.tokens, { access_token: t.access_token, refresh_token: t.refresh_token, expires_at: t.expires_at, athlete: t.athlete });
+  store.remove(KEYS.cache);
+}
+
+function logout() {
+  if (!state.data?.demo) {
+    store.remove(KEYS.tokens);
+    store.remove(KEYS.cache);
+  }
+  location.assign(redirectUri());
+}
+
+function showWelcome(error = '', editApp = false) {
+  const app = store.get(KEYS.app);
+  const needsSetup = editApp || !app;
   $('status').textContent = '';
+  $('dashboard').hidden = true;
+  $('actions').hidden = true;
+  $('athlete').hidden = true;
   $('welcome').hidden = false;
-  $('config-note').hidden = configured;
+  $('setup').hidden = !needsSetup;
+  $('edit-app').hidden = needsSetup;
+  $('callback-domain').textContent = location.hostname || 'localhost';
+  if (app) {
+    $('client-id').value = app.clientId;
+    $('client-secret').value = app.clientSecret;
+  }
+  $('auth-error').textContent = error;
   $('auth-error').hidden = !error;
-  if (!configured) $('connect').setAttribute('aria-disabled', 'true');
 }
 
 async function init() {
@@ -471,24 +601,32 @@ async function init() {
     $('refresh').classList.remove('spinning');
   });
 
+  $('logout').addEventListener('click', logout);
+  $('edit-app').addEventListener('click', () => showWelcome('', true));
+
+  $('connect').addEventListener('click', () => {
+    if (!$('setup').hidden) {
+      if (!$('setup').reportValidity()) return;
+      store.set(KEYS.app, { clientId: $('client-id').value.trim(), clientSecret: $('client-secret').value.trim() });
+    }
+    login();
+  });
+
   const params = new URLSearchParams(location.search);
   if (params.has('demo')) return show(window.makeDemoData());
 
-  $('status').textContent = 'Chargement…';
-  let config;
   try {
-    config = await (await fetch('/auth/config')).json();
-  } catch {
-    // Page ouverte sans le serveur : seule la démo est possible.
-    return showWelcome(false);
-  }
-  if (!config.connected) return showWelcome(config.configured, params.get('error') === 'auth');
-
-  $('status').textContent = 'Récupération de vos sorties sur Strava…';
-  try {
+    if (params.has('code') || params.has('error')) {
+      $('status').textContent = 'Connexion à Strava…';
+      await handleCallback(params);
+    }
+    if (!store.get(KEYS.tokens) || !store.get(KEYS.app)) return showWelcome();
+    $('status').textContent = 'Récupération de vos sorties sur Strava…';
     await loadDashboard();
   } catch (e) {
-    $('status').textContent = e.message;
+    if (e.status === 401) store.remove(KEYS.tokens);
+    if (state.data) $('status').textContent = e.message;
+    else showWelcome(e.message);
   }
 }
 

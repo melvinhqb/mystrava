@@ -25,7 +25,7 @@
       <button type="button" class="icon-btn" id="refresh" title="Actualiser depuis Strava" aria-label="Actualiser">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>
       </button>
-      <a class="link-btn" id="logout" href="/auth/logout">Déconnexion</a>
+      <button type="button" class="link-btn" id="logout">Déconnexion</button>
     </nav>
   </header>
 
@@ -36,12 +36,21 @@
         <p class="eyebrow">Tableau de bord course à pied</p>
         <h1>Toutes vos sorties,<br>en un coup d'œil.</h1>
         <p class="muted">Connectez votre compte Strava pour analyser distance, allure, dénivelé, régularité et records.</p>
+        <form class="setup" id="setup" hidden>
+          <p class="note">
+            Créez une application sur <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener">strava.com/settings/api</a>
+            avec <code id="callback-domain">localhost</code> comme <em>Authorization Callback Domain</em>, puis collez ses identifiants.
+            Ils restent uniquement dans ce navigateur.
+          </p>
+          <label>Client ID<input id="client-id" inputmode="numeric" autocomplete="off" required></label>
+          <label>Client Secret<input id="client-secret" type="password" autocomplete="off" required></label>
+        </form>
         <div class="welcome-actions">
-          <a class="btn-strava" id="connect" href="/auth/login">Se connecter avec Strava</a>
+          <button type="button" class="btn-strava" id="connect">Se connecter avec Strava</button>
           <a class="btn-ghost" href="?demo">Voir la démo</a>
         </div>
-        <p class="note" id="config-note" hidden>Identifiants Strava non configurés sur le serveur : renseignez <code>STRAVA_CLIENT_ID</code> et <code>STRAVA_CLIENT_SECRET</code> dans <code>.env</code>.</p>
-        <p class="note error" id="auth-error" hidden>La connexion à Strava a échoué. Réessayez.</p>
+        <button type="button" class="link-btn" id="edit-app" hidden>Modifier l'application Strava</button>
+        <p class="note error" id="auth-error" hidden></p>
       </div>
     </section>
 

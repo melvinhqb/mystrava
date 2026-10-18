@@ -585,6 +585,50 @@ main {
 .btn-ghost { border: 1.5px solid var(--line); }
 .btn-ghost:hover { border-color: var(--strava); color: var(--strava); }
 
+.setup {
+  display: grid;
+  gap: 12px;
+}
+
+.setup label {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.setup input {
+  font: inherit;
+  font-size: 16px;
+  color: var(--ink);
+  background: var(--tile-alt);
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  min-height: 44px;
+}
+
+.setup input:focus {
+  outline: none;
+  border-color: var(--strava);
+}
+
+.setup a { color: var(--strava); }
+
+button.btn-strava { border: 0; font: inherit; font-weight: 700; cursor: pointer; }
+
+button.link-btn {
+  border: 0;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+  justify-self: start;
+  padding-left: 0;
+}
+
+.welcome-hero > button.link-btn { align-self: flex-start; }
+
 .note { font-size: 13px; color: var(--muted); }
 .note.error { color: #D1432B; }
 
