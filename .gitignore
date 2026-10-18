@@ -1,0 +1,11 @@
+node_modules/
+dist/
+storybook-static/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Données Strava : générées au déploiement (ou par `npm run sync` en local), jamais commitées
+public/data.json
