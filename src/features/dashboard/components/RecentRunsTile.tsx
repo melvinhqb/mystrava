@@ -8,14 +8,15 @@ export interface RecentRunsTileProps {
   athleteId?: number;
   /** En démo, les liens vers Strava sont désactivés. */
   demo?: boolean;
+  /** Format de la tuile (colonnes:lignes). */
+  size?: '2:2';
 }
 
-export function RecentRunsTile({ runs, athleteId, demo = false }: RecentRunsTileProps) {
+export function RecentRunsTile({ runs, athleteId, demo = false, size = '2:2' }: RecentRunsTileProps) {
   const profile = athleteId ? `https://www.strava.com/athletes/${encodeURIComponent(athleteId)}` : 'https://www.strava.com/';
   return (
     <Tile
-      span={2}
-      rows={2}
+      size={size}
       className="recent"
       title="Dernières sorties"
       caption={<a className="muted small-link" href={profile} target="_blank" rel="noopener">Tout voir ↗</a>}

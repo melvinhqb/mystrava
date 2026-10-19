@@ -1,7 +1,8 @@
 import { Delta, StatTile } from '@/components/ui';
-import { duration, nf, pace } from '@/lib/format';
+import { duration, nf } from '@/lib/format';
 import type { Run } from '@/types/strava';
-import { paceOf, sum } from '../lib/stats';
+import { sum } from '../lib/stats';
+import { PaceTile } from './PaceTile';
 
 export interface PeriodKpisProps {
   runs: Run[];
@@ -9,47 +10,58 @@ export interface PeriodKpisProps {
   spanDays: number;
 }
 
-/** Les quatre indicateurs de la période : sorties, temps, allure, dénivelé. */
-export function PeriodKpis({ runs, prevRuns, spanDays }: PeriodKpisProps) {
-  const dist = sum(runs, 'distance');
-  const time = sum(runs, 'moving_time');
-  const elev = sum(runs, 'elevation');
-  const p = paceOf(runs);
-  const prevP = prevRuns ? paceOf(prevRuns) : NaN;
+export interface KpiProps extends PeriodKpisProps {
+  /** Format de la tuile (colonnes:lignes). */
+  size?: '1:1';
+}
 
+/** Les quatre indicateurs de la période : sorties, temps, allure, dénivelé. */
+export function PeriodKpis(props: PeriodKpisProps) {
   return (
     <>
-      <StatTile
-        label="Sorties"
-        value={nf().format(runs.length)}
-        sub={prevRuns
-          ? <Delta current={runs.length} previous={prevRuns.length} />
-          : `${nf(1).format(runs.length / (spanDays / 7))} par semaine`}
-      />
-      <StatTile
-        label="Temps de course"
-        value={duration(time)}
-        sub={runs.length ? `${duration(time / runs.length)} par sortie` : undefined}
-      />
-      <StatTile label="Allure moyenne" value={pace(p)} unit="/km" sub={<PaceDelta pace={p} previous={prevP} />} />
-      <StatTile
-        label="Dénivelé positif"
-        value={nf().format(Math.round(elev))}
-        unit="m"
-        sub={dist ? `${nf().format(Math.round((elev / (dist / 1000)) * 10))} m / 10 km` : undefined}
-      />
+      <RunCountKpi {...props} />
+      <MovingTimeKpi {...props} />
+      <PaceTile {...props} />
+      <ElevationKpi {...props} />
     </>
   );
 }
 
-function PaceDelta({ pace: p, previous }: { pace: number; previous: number }) {
-  if (!isFinite(p)) return null;
-  if (!isFinite(previous)) return <>{nf(1).format(3600 / p)} km/h</>;
-  const diff = Math.round(previous - p);
-  if (diff === 0) return <>Stable vs période préc.</>;
+export function RunCountKpi({ runs, prevRuns, spanDays, size = '1:1' }: KpiProps) {
   return (
-    <>
-      <span className={diff > 0 ? 'delta-up' : 'delta-down'}>{diff > 0 ? '−' : '+'}{Math.abs(diff)} s/km</span> vs période préc.
-    </>
+    <StatTile
+      size={size}
+      label="Sorties"
+      value={nf().format(runs.length)}
+      sub={prevRuns
+        ? <Delta current={runs.length} previous={prevRuns.length} />
+        : `${nf(1).format(runs.length / (spanDays / 7))} par semaine`}
+    />
+  );
+}
+
+export function MovingTimeKpi({ runs, size = '1:1' }: KpiProps) {
+  const time = sum(runs, 'moving_time');
+  return (
+    <StatTile
+      size={size}
+      label="Temps de course"
+      value={duration(time)}
+      sub={runs.length ? `${duration(time / runs.length)} par sortie` : undefined}
+    />
+  );
+}
+
+export function ElevationKpi({ runs, size = '1:1' }: KpiProps) {
+  const dist = sum(runs, 'distance');
+  const elev = sum(runs, 'elevation');
+  return (
+    <StatTile
+      size={size}
+      label="Dénivelé positif"
+      value={nf().format(Math.round(elev))}
+      unit="m"
+      sub={dist ? `${nf().format(Math.round((elev / (dist / 1000)) * 10))} m / 10 km` : undefined}
+    />
   );
 }

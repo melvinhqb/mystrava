@@ -92,9 +92,64 @@ Couvrez au minimum l'état nominal, l'état vide et les cas limites (noms longs,
 ## Ajouter une tuile au tableau de bord
 
 1. Ajoutez le calcul dans `src/features/dashboard/lib/stats.ts` (fonction pure).
-2. Créez `src/features/dashboard/components/MaTuile.tsx` en vous appuyant sur `Tile` ou `StatTile`.
+2. Créez `src/features/dashboard/components/MaTuile.tsx` en vous appuyant sur `Tile` ou `StatTile`,
+   avec une prop `size` typée par les formats qu'elle sait afficher (ex. `size?: '2:1'`) et transmise à `Tile`.
 3. Ajoutez `MaTuile.stories.tsx` et vérifiez le rendu dans Storybook (clair, sombre, mobile).
-4. Placez la tuile dans `Dashboard.tsx`.
+4. Déclarez le bloc dans `src/features/dashboard/blocks.tsx` (`label`, `sizes` et `render`).
+5. Placez-le dans la disposition `src/features/dashboard/layout.ts`.
+
+## Personnaliser la disposition
+
+La grille est assemblée *as code* dans `src/features/dashboard/layout.ts` : une liste ordonnée de blocs,
+chacun avec un format `colonnes:lignes` sur une grille de 4 colonnes (`1:1`, `2:1`, `1:2`, `2:2`, `4:1`…).
+Toutes les lignes ont la même hauteur (`--row` dans `global.css` : 200 px, 150 px sur mobile) et toutes les
+colonnes la même largeur : deux tuiles qui occupent autant de lignes ou de colonnes ont exactement la même taille,
+quel que soit leur contenu. Une tuile `1:1` est donc toujours plus large que haute, et c'est au contenu de
+s'adapter au format (les listes affichent autant d'éléments entiers que la place le permet).
+
+```ts
+export const defaultLayout: DashboardLayout = [
+  { block: 'distance', size: '2:2' },
+  { block: 'kpi-runs' },            // sans `size` : le premier format du bloc
+  { block: 'streak', size: '4:1' },
+];
+```
+
+Les formats acceptés par chaque bloc sont déclarés dans `blocks.tsx` ; TypeScript refuse un format qu'un bloc
+ne supporte pas. Sur tablette et mobile, les tuiles larges sont ramenées à la largeur de l'écran.
+
+`defaultLayout` est la disposition par défaut. Dans l'application, le bouton **Personnaliser** permet aussi
+de la modifier à la manière d'un écran d'accueil de téléphone :
+
+- **×** retire un widget, la tuile **+ Ajouter un widget** ouvre le catalogue des widgets absents, dans chacun de leurs formats ;
+- les tuiles se déplacent par glisser-déposer, ou avec les flèches ← → de leur barre d'outils ;
+- les boutons ↔ − + et ↕ − + passent au format voisin en largeur ou en hauteur, parmi ceux que le bloc supporte ;
+- la **carte** se déplace (glisser ou flèches du clavier) et se zoome (molette, + −) : la vue affichée devient sa vue par défaut ; ⌖ revient au centre automatique, la zone la plus parcourue. Hors personnalisation, la carte s'explore aussi, sans rien enregistrer.
+
+Un bloc peut ainsi avoir des **réglages** propres à son emplacement (`options` dans la disposition, typés par bloc) :
+il les déclare avec `parseOptions` dans `blocks.tsx`, qui relit aussi les sauvegardes, et les reçoit dans `render`
+avec `editing` et `onOptionsChange`.
+
+```ts
+{ block: 'map', size: '4:2', options: { center: [49.05, 2.04], zoom: 13 } }
+```
+
+Cette disposition personnalisée est enregistrée dans le navigateur (`localStorage`, clé `running.layout`) ;
+**Réinitialiser** revient à `defaultLayout`. Une sauvegarde est relue avec tolérance (`parseLayout`) :
+les blocs disparus sont ignorés et les formats qui ne sont plus supportés reviennent au format par défaut.
+
+Chaque widget se décline en **small** (`1:1`, l'essentiel), **medium** (`2:1`, + un graphique)
+et **large** (`2:2`, + des détails), quand son contenu s'y prête.
+
+| Bloc | Formats | Bloc | Formats |
+| --- | --- | --- | --- |
+| `distance` | `1:1`, `2:1`, `2:2` | `heart-rate` | `1:1`, `2:1` |
+| `pace` | `1:1`, `2:1`, `2:2` | `streak` | `1:1`, `2:1`, `2:2`, `4:1` |
+| `kpi-runs` | `1:1` | `weekday` | `1:1` |
+| `kpi-time` | `1:1` | `distance-buckets` | `1:1` |
+| `kpi-elevation` | `1:1` | `recent-runs` | `2:2` |
+| `records` | `1:2` | `totals` | `2:1` |
+| `map` | `2:2`, `1:1`, `4:2` | | |
 
 ## Qualité
 

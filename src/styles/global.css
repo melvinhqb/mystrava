@@ -14,9 +14,14 @@
   --heat-2: #FFA57A;
   --heat-3: #FC6A2A;
   --heat-4: #C83A00;
+  /* Heatmap de la carte : palette magma, du moins au plus fréquenté. Sur fond clair, sa moitié sombre,
+     inversée : les passages fréquents sont les plus foncés. Ses extrêmes, invisibles sur le fond, sont écartés. */
+  --map-heat: #F7705C, #DE4968, #B73779, #8C2981, #641A80, #3B0F70, #1C1044;
   --shadow: 0 1px 2px rgba(27, 26, 25, .04), 0 4px 16px rgba(27, 26, 25, .05);
   --radius: 22px;
   --gap: 14px;
+  /* Hauteur d'une ligne de la grille : identique pour toutes les tuiles, quel que soit leur contenu. */
+  --row: 200px;
   color-scheme: light;
 }
 
@@ -35,6 +40,8 @@
     --heat-2: #A1400F;
     --heat-3: #E2550F;
     --heat-4: #FF8A4C;
+    /* Sur fond sombre, dans le sens d'origine : les passages fréquents sont les plus lumineux. */
+    --map-heat: #641A80, #8C2981, #B73779, #DE4968, #F7705C, #FE9F6D, #FECF92, #FCFDBF;
     --shadow: 0 1px 2px rgba(0, 0, 0, .3);
     color-scheme: dark;
   }
@@ -158,7 +165,7 @@ main {
 .bento {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-auto-rows: minmax(168px, auto);
+  grid-auto-rows: var(--row);
   grid-auto-flow: row dense;
   gap: var(--gap);
 }
@@ -171,6 +178,7 @@ main {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   position: relative;
   overflow: hidden;
   animation: rise 0.45s ease both;
@@ -184,9 +192,11 @@ main {
   .tile { animation: none; }
 }
 
-.span-2 { grid-column: span 2; }
-.span-4 { grid-column: span 4; }
+.cols-2 { grid-column: span 2; }
+.cols-3 { grid-column: span 3; }
+.cols-4 { grid-column: span 4; }
 .rows-2 { grid-row: span 2; }
+.rows-3 { grid-row: span 3; }
 
 .tile-head {
   display: flex;
@@ -194,8 +204,12 @@ main {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
-  flex-wrap: wrap;
 }
+
+/* En-tête sur une seule ligne : la hauteur de la tuile est fixe, la légende s'abrège. */
+.tile-head > * { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile-head h2 { flex: none; max-width: 100%; }
+.tile-head > :not(h2) { min-width: 0; }
 
 .tile-head h2 {
   font-size: 15px;
@@ -245,10 +259,21 @@ main {
 .hero {
   background: linear-gradient(150deg, #FF6A1F 0%, var(--accent) 45%, var(--accent-deep) 100%);
   color: #fff;
-  padding: 26px;
 }
 
-.hero .label { color: rgba(255, 255, 255, .85); }
+.hero-large { padding: 26px; }
+
+.hero .label,
+.hero .sub,
+.hero .value small { color: rgba(255, 255, 255, .85); }
+
+/* Graphiques sur fond accentué (format medium). */
+.hero .chart .bar { fill: rgba(255, 255, 255, .85); }
+.hero .chart .bar:hover { fill: #fff; }
+.hero .chart .gridline { stroke: rgba(255, 255, 255, .3); }
+.hero .chart text { fill: rgba(255, 255, 255, .8); }
+.hero .chart .value-label { fill: #fff; }
+.hero .empty { color: rgba(255, 255, 255, .85); }
 
 .hero-value {
   margin-top: 8px;
@@ -273,7 +298,7 @@ main {
 
 .hero-spark {
   flex: 1;
-  min-height: 90px;
+  min-height: 0;
   margin: 18px -6px 12px;
 }
 
@@ -299,7 +324,7 @@ main {
 
 .chart {
   flex: 1;
-  min-height: 140px;
+  min-height: 0;
   position: relative;
 }
 
@@ -322,12 +347,56 @@ main {
 .chart .area { fill: var(--accent); opacity: .12; }
 .chart .dot { fill: var(--tile); stroke: var(--accent); stroke-width: 2; }
 .chart .value-label { fill: var(--ink); font-weight: 700; }
+.chart .avg-line { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 4; }
+
+/* ---------- Indicateurs medium et large ---------- */
+
+/* Medium (2:1) : indicateur à gauche, graphique à droite. */
+.kpi-wide {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  grid-template-rows: auto 1fr auto;
+  column-gap: 20px;
+}
+.kpi-wide .label { grid-area: 1 / 1; }
+.kpi-wide .value { grid-area: 2 / 1; align-self: end; }
+.kpi-wide .sub { grid-area: 3 / 1; }
+.kpi-wide .chart { grid-area: 1 / 2 / 4 / 3; min-height: 0; }
+
+/* Pleine largeur (4:1) : l'indicateur occupe une colonne, le graphique les trois autres. */
+.kpi-wide.cols-4 { grid-template-columns: minmax(0, 1fr) minmax(0, 3fr); grid-template-rows: auto 1fr auto auto; }
+.kpi-wide .legend { grid-area: 4 / 1; justify-content: flex-start; margin-top: 10px; }
+
+.kpi-large .legend { margin-top: 10px; }
+
+/* Large (2:2) : indicateur en haut, graphique au milieu, détails en bas. */
+.kpi-large .value { margin-top: 4px; }
+.kpi-large .chart { margin-top: 10px; }
+
+.pace-details {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+  margin: 12px 0 0;
+}
+
+.pace-details div {
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--tile-alt);
+  border: 1px solid var(--line);
+}
+
+.pace-details .best { background: var(--accent-soft); border-color: transparent; }
+.pace-details dt { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pace-details dd { margin: 0; font-size: 15px; font-weight: 800; }
 
 .empty {
   display: grid;
   place-items: center;
   height: 100%;
-  min-height: 100px;
+  min-height: 0;
   color: var(--muted);
   font-size: 13px;
   text-align: center;
@@ -335,29 +404,49 @@ main {
 
 /* ---------- Records ---------- */
 
+/*
+ * Listes à hauteur fixe : les éléments qui ne tiennent pas passent dans une colonne
+ * suivante, masquée. La tuile affiche ainsi autant d'éléments entiers que sa taille le permet.
+ */
+.record-list, .run-list {
+  flex: 1;
+  min-height: 0;
+  flex-flow: column wrap;
+  align-content: flex-start;
+  overflow: hidden;
+}
+
+.record-list > li, .run-list > li { width: 100%; }
+
+/* Les sorties visibles se répartissent la hauteur de la tuile. */
+.run-list > li {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 .record-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  flex: 1;
+  gap: 8px;
 }
 
 .record-list li {
   background: var(--tile-alt);
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 12px 14px;
-  flex: 1;
+  padding: 8px 14px;
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
-.record-list .r-label { font-size: 12px; color: var(--muted); font-weight: 600; }
-.record-list .r-value { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.record-list .r-label { font-size: 12px; color: var(--muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.record-list .r-value { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; }
 .record-list .r-meta { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ---------- Régularité ---------- */
@@ -379,7 +468,8 @@ main {
 
 /* ---------- Calendrier ---------- */
 
-.heatmap { width: 100%; }
+/* Calendrier centré verticalement dans la place que lui laisse la tuile. */
+.heatmap { width: 100%; display: flex; align-items: center; }
 
 .heatmap svg { width: 100%; height: auto; display: block; }
 
@@ -396,7 +486,6 @@ main {
   align-items: center;
   justify-content: flex-end;
   gap: 4px;
-  margin-top: 10px;
   font-size: 12px;
   color: var(--muted);
 }
@@ -416,7 +505,6 @@ main {
   margin: 0;
   padding: 0;
   display: flex;
-  flex-direction: column;
 }
 
 .run-list li + li { border-top: 1px solid var(--line); }
@@ -479,18 +567,25 @@ main {
   background: var(--tile-alt);
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 12px 14px;
+  padding: 10px 14px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .totals-grid h3 {
   margin: 0 0 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 12px;
   color: var(--accent);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
-.totals-grid p { font-size: 13px; color: var(--muted); }
+.totals-grid h3 .short { display: none; }
+
+.totals-grid p { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .totals-grid p b { color: var(--ink); font-size: 18px; font-weight: 800; }
 
 /* ---------- Accueil ---------- */
@@ -562,15 +657,382 @@ main {
   color: var(--muted);
 }
 
+/* ---------- Carte ---------- */
+
+.map-tile { padding: 0; }
+
+/* La carte remplit la tuile et se découpe elle-même (la tuile laisse dépasser en mode édition). */
+.map {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  background: var(--grid);
+  touch-action: none;
+  cursor: grab;
+}
+
+.map.dragging { cursor: grabbing; }
+.map:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* Molette sans Ctrl hors personnalisation : la page défile, on indique comment zoomer. */
+.map-hint {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, .35);
+  color: #fff;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.map-img {
+  position: absolute;
+  width: 256px;
+  height: 256px;
+  max-width: none;
+  user-select: none;
+  /* Fond discret, pour que les tracés ressortent. */
+  filter: grayscale(1) contrast(.85) brightness(1.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  .map-img { filter: grayscale(1) invert(1) brightness(.75) contrast(1.15); }
+}
+
+.map-tracks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Survol de la heatmap : nombre de passages sous le pointeur. */
+.map-tip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 10px));
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--tile);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Légende de la heatmap, en échelle logarithmique comme le dessin. */
+.map-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tile) 88%, transparent);
+  box-shadow: var(--shadow);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.map-legend-ramp {
+  width: 56px;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.map-label,
+.map-attrib,
+.map-controls {
+  position: absolute;
+  background: color-mix(in srgb, var(--tile) 88%, transparent);
+  box-shadow: var(--shadow);
+}
+
+.map-label {
+  top: 12px;
+  left: 12px;
+  max-width: calc(100% - 24px);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-attrib {
+  right: 0;
+  bottom: 0;
+  padding: 1px 8px;
+  border-top-left-radius: 8px;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.map-attrib a { text-decoration: none; }
+.map-attrib a:hover { text-decoration: underline; }
+
+.map-controls {
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.map-controls button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.map-controls button + button { border-top: 1px solid var(--line); }
+.map-controls button:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent); }
+.map-controls button:disabled { color: var(--line); cursor: default; }
+
+/* ---------- Personnalisation ---------- */
+
+.btn-pill {
+  border: 0;
+  background: var(--tile);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.btn-pill:hover { color: var(--accent); }
+.btn-pill.primary { background: var(--accent); color: #fff; }
+.btn-pill.primary:hover { background: var(--accent-deep); }
+
+.bento.editing .tile { animation: none; }
+
+.tile.editable {
+  /* Laisse dépasser le badge × (le contenu, lui, tient dans la cellule de hauteur fixe). */
+  overflow: visible;
+  cursor: grab;
+  outline: 2px dashed var(--line);
+  outline-offset: -2px;
+}
+
+/* Le contenu ne réagit plus (liens, survols) : seuls les contrôles d'édition sont actifs. */
+.tile.editable > :not(.tile-edit) { pointer-events: none; user-select: none; }
+/* Sauf la carte, qu'on déplace et zoome en mode édition pour choisir sa vue. */
+.tile.editable > .map,
+.tile.editable > .map-controls { pointer-events: auto; }
+.tile.dragging { opacity: 0.4; }
+.tile.drop-target { outline: 2px solid var(--accent); }
+
+.tile-edit {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.tile-edit button {
+  pointer-events: auto;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.tile-remove {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  z-index: 1;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+  color: var(--tile);
+  font-size: 17px;
+  line-height: 1;
+}
+
+.tile-remove:hover { background: #D1432B; color: #fff; }
+
+.tile-edit-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  width: max-content;
+  max-width: calc(100% - 16px);
+  margin-inline: auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 18px;
+  background: var(--tile);
+  border: 1px solid var(--line);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, .14);
+  pointer-events: auto;
+  cursor: default;
+}
+
+.tile-edit-bar button {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.tile-edit-bar button:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent); }
+.tile-edit-bar button:disabled { color: var(--line); cursor: default; }
+
+.tile-edit-group {
+  display: inline-flex;
+  align-items: center;
+  padding-left: 6px;
+  border-left: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.tile-edit-size {
+  padding: 0 6px;
+  border-left: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.add-tile {
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: transparent;
+  box-shadow: none;
+  border: 2px dashed var(--line);
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.add-tile span { font-size: 30px; line-height: 1; }
+.add-tile:hover { border-color: var(--accent); color: var(--accent); }
+
+.widget-dialog {
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  padding: 24px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--tile);
+  color: var(--ink);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, .25);
+}
+
+.widget-dialog::backdrop { background: rgba(0, 0, 0, .4); }
+
+.widget-dialog header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.widget-dialog h2 { font-size: 18px; letter-spacing: -0.01em; }
+
+.dialog-close {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--tile-alt);
+  color: var(--ink);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.widget-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.widget-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--tile-alt);
+}
+
+.widget-name { font-weight: 700; font-size: 14px; }
+
+.widget-sizes { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+.widget-sizes button {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 52px;
+  padding: 6px 8px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--tile);
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.widget-sizes button:hover { border-color: var(--accent); color: var(--accent); }
+
+.size-preview {
+  width: calc(var(--c) * 9px + (var(--c) - 1) * 2px);
+  height: calc(var(--r) * 9px + (var(--r) - 1) * 2px);
+  border-radius: 3px;
+  background: var(--accent-soft);
+  border: 1.5px solid var(--accent);
+}
+
 /* ---------- Responsive ---------- */
 
 @media (max-width: 1024px) {
   .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .span-4 { grid-column: span 2; }
+  .cols-3, .cols-4 { grid-column: span 2; }
 }
 
 @media (max-width: 640px) {
-  :root { --gap: 10px; --radius: 18px; }
+  /* Ligne de 150 px, réduite sur les très petits écrans pour qu'une case reste plus large que haute. */
+  :root { --gap: 10px; --radius: 18px; --row: min(150px, calc((100vw - 42px) * 0.42)); }
 
   .topbar { padding: 14px 16px 4px; }
   main { padding: 10px 16px 16px; }
@@ -580,20 +1042,32 @@ main {
   .segmented { flex: 1; }
   .segmented button { flex: 1; padding: 6px 4px; }
 
-  .bento { grid-auto-rows: minmax(132px, auto); }
-  .span-2, .span-4 { grid-column: span 2; }
-  .rows-2 { grid-row: auto; }
+  .cols-2, .cols-3, .cols-4 { grid-column: span 2; }
 
   .tile { padding: 16px; }
-  .hero { padding: 20px; }
-  .hero-spark { min-height: 70px; }
+  .hero-large { padding: 20px; }
 
-  .records, .recent, .chart-tile, .totals { grid-column: span 2; }
-  .totals-grid { grid-template-columns: 1fr; }
+  /* Totaux sur une ligne : seuls le titre et la distance restent visibles. */
+  .totals-grid { gap: 6px; }
+  .totals-grid section { padding: 8px 10px; }
+  .totals-grid h3 { font-size: 10px; }
+  .totals-grid h3 .long { display: none; }
+  .totals-grid h3 .short { display: inline; }
+  .totals-grid p b { font-size: 15px; }
+  .totals-grid p:not(:first-of-type) { display: none; }
+  .kpi .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hero-value { font-size: clamp(40px, 13vw, 56px); }
+  .hero-meta div { padding: 8px 12px; }
+  .hero-meta dd { font-size: 17px; }
+  .tile-edit-size { display: none; }
+  .pace-details { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .kpi-wide.cols-4 { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
+  .kpi-wide .legend { display: none; }
   .welcome-hero { padding: 26px; }
 }
 
+/* Très petits écrans : les cellules descendent sous 135 px de haut. */
 @media (max-width: 360px) {
-  .bento { grid-template-columns: minmax(0, 1fr); }
-  .span-2, .span-4, .records, .recent, .chart-tile, .totals { grid-column: auto; }
+  .tile { padding: 12px; }
+  .value { font-size: 24px; }
 }

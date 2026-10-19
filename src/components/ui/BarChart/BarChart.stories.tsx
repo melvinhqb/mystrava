@@ -7,7 +7,7 @@ const meta = {
   title: 'UI/BarChart',
   component: BarChart,
   decorators: [
-    (Story) => <Tile span={2} className="chart-tile" title="Histogramme"><Story /></Tile>,
+    (Story) => <Tile size="2:1" className="chart-tile" title="Histogramme"><Story /></Tile>,
     withBento(4),
   ],
   args: {

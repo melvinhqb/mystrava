@@ -5,11 +5,12 @@
 
 import { rename, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
-import type { RawRun, StravaData, Totals } from '../src/types/strava.ts';
+import { decodePolyline, encodePolyline, trimEnds } from '../src/lib/polyline.ts';
+import type { LatLng, RawRun, StravaData, Totals } from '../src/types/strava.ts';
 
 // Sous-ensemble des réponses de l'API Strava utilisé ici.
 interface TokenResponse { access_token: string; refresh_token?: string }
-interface StravaAthlete { id: number; firstname: string; lastname: string; profile: string; profile_medium?: string; city: string | null }
+interface StravaAthlete { id: number; firstname: string; lastname: string; profile: string; profile_medium?: string; city: string | null; state?: string | null; country?: string | null }
 interface StravaStats { all_run_totals: Totals; ytd_run_totals: Totals; recent_run_totals: Totals }
 interface StravaActivity {
   id: number;
@@ -24,6 +25,8 @@ interface StravaActivity {
   has_heartrate: boolean;
   average_heartrate?: number;
   kudos_count: number;
+  private?: boolean;
+  map?: { summary_polyline?: string | null };
 }
 
 // En local, les secrets peuvent être placés dans .env (voir .env.example).
@@ -38,6 +41,8 @@ const { STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, STRAVA_REFRESH_TOKEN } = process
 const API = 'https://www.strava.com/api/v3';
 const RUN_TYPES = new Set(['Run', 'TrailRun', 'VirtualRun']);
 const MAX_PAGES = 10; // 10 × 200 activités, pour rester sous les limites de l'API
+/** Distance retirée au début et à la fin de chaque tracé publié, pour ne pas révéler les lieux de départ. */
+const TRIM_METERS = 300;
 
 /** Les trois secrets Strava sont-ils définis ? */
 export const hasStravaSecrets = () => Boolean(STRAVA_CLIENT_ID && STRAVA_CLIENT_SECRET && STRAVA_REFRESH_TOKEN);
@@ -61,6 +66,33 @@ async function accessToken(): Promise<string> {
   return t.access_token;
 }
 
+/** Tracé publiable d'une activité : rogné aux extrémités, jamais pour une activité privée. */
+function publicPolyline(a: StravaActivity): string | undefined {
+  const encoded = a.map?.summary_polyline;
+  if (a.private || !encoded) return undefined;
+  const points = trimEnds(decodePolyline(encoded), TRIM_METERS);
+  return points.length ? encodePolyline(points) : undefined;
+}
+
+/** Centre de la ville du profil, via Nominatim (OpenStreetMap) ; null si introuvable. Repli de la carte sans tracé. */
+async function geocodeCity(athlete: StravaAthlete): Promise<LatLng | null> {
+  if (!athlete.city) return null;
+  const query = [athlete.city, athlete.state, athlete.country].filter(Boolean).join(', ');
+  try {
+    // featureType=city : seulement des villes ou villages (sans lui, « Cergy-Pontoise » donne une université).
+    const params = new URLSearchParams({ format: 'json', limit: '1', featureType: 'city', q: query });
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+      headers: { 'User-Agent': 'mystrava (https://github.com/melvinhqb/mystrava)' },
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const [place] = (await r.json()) as { lat: string; lon: string }[];
+    return place ? [Number(place.lat), Number(place.lon)] : null;
+  } catch (err) {
+    console.warn(`::warning::Ville « ${query} » introuvable (${(err as Error).message}).`);
+    return null;
+  }
+}
+
 /** Écrit les données Strava dans `output` et renvoie le nombre de sorties. */
 export async function syncStrava(output: string): Promise<number> {
   if (!hasStravaSecrets()) {
@@ -81,7 +113,7 @@ export async function syncStrava(output: string): Promise<number> {
     const batch = await get<StravaActivity[]>(`/athlete/activities?per_page=200&page=${page}`);
     for (const a of batch) {
       if (!RUN_TYPES.has(a.sport_type || a.type)) continue;
-      // Seuls les champs utiles à l'affichage sont publiés (pas de tracé GPS ni de position).
+      // Seuls les champs utiles à l'affichage sont publiés : le tracé est rogné, la position de départ omise.
       runs.push({
         id: a.id,
         name: a.name,
@@ -93,6 +125,7 @@ export async function syncStrava(output: string): Promise<number> {
         average_speed: a.average_speed,
         average_heartrate: a.has_heartrate ? (a.average_heartrate ?? null) : null,
         kudos: a.kudos_count,
+        polyline: publicPolyline(a),
       });
     }
     if (batch.length < 200) break;
@@ -105,6 +138,7 @@ export async function syncStrava(output: string): Promise<number> {
       lastname: athlete.lastname,
       profile: athlete.profile_medium || athlete.profile,
       city: athlete.city,
+      cityCenter: await geocodeCity(athlete),
     },
     stats: { all: stats.all_run_totals, ytd: stats.ytd_run_totals, recent: stats.recent_run_totals },
     runs,

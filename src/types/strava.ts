@@ -1,5 +1,8 @@
 // Format de data.json, produit par scripts/fetch-strava.ts et lu par la page.
 
+/** Position [latitude, longitude] en degrés. */
+export type LatLng = [number, number];
+
 export type RunType = 'Run' | 'TrailRun' | 'VirtualRun';
 
 /** Sortie telle que publiée dans data.json (sous-ensemble d'une activité Strava). */
@@ -19,6 +22,11 @@ export interface RawRun {
   average_speed: number;
   average_heartrate: number | null;
   kudos: number;
+  /**
+   * Tracé GPS simplifié (encoded polyline), privé de ses 300 premiers et derniers mètres.
+   * Absent pour les sorties sans GPS (tapis), privées ou trop courtes.
+   */
+  polyline?: string;
 }
 
 /** Totaux renvoyés par /athletes/{id}/stats. */
@@ -37,6 +45,8 @@ export interface Athlete {
   lastname?: string;
   profile?: string | null;
   city?: string | null;
+  /** Coordonnées du centre de `city`, position de la carte quand aucune sortie n'a de tracé. */
+  cityCenter?: LatLng | null;
 }
 
 export interface AthleteStats {

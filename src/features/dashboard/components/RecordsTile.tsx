@@ -3,17 +3,18 @@ import { km, nf, pace, shortDate } from '@/lib/format';
 import type { Run } from '@/types/strava';
 import { records } from '../lib/stats';
 
-export function RecordsTile({ runs }: { runs: Run[] }) {
+export function RecordsTile({ runs, size = '1:2' }: { runs: Run[]; size?: '1:2' }) {
   const r = records(runs);
-  const meta = (run: Run) => `${run.name} · ${shortDate(run.startDate)}`;
+  // La date d'abord : c'est elle qui reste visible quand le nom est tronqué.
+  const meta = (run: Run) => `${shortDate(run.startDate)} · ${run.name}`;
   return (
-    <Tile rows={2} className="records" title="Records">
+    <Tile size={size} className="records" title="Records">
       <ul className="record-list">
         {!r ? <li className="empty">Aucune sortie sur la période</li> : (
           <>
             <RecordItem label="Plus longue sortie" value={`${km(r.longest.distance)} km`} meta={meta(r.longest)} />
             {r.fastest && (
-              <RecordItem label="Allure la plus rapide (≥ 5 km)" value={`${pace(1000 / r.fastest.average_speed)} /km`} meta={meta(r.fastest)} />
+              <RecordItem label="Plus rapide (5 km+)" value={`${pace(1000 / r.fastest.average_speed)} /km`} meta={meta(r.fastest)} />
             )}
             <RecordItem label="Plus gros dénivelé" value={`${nf().format(Math.round(r.climb.elevation))} m`} meta={meta(r.climb)} />
             <RecordItem label="Meilleure semaine" value={`${km(r.bestWeek.distance)} km`} meta={`Semaine du ${shortDate(r.bestWeek.start)}`} />

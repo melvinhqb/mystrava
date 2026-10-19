@@ -18,3 +18,8 @@ export const Defaut: Story = {};
 export const SansSortie: Story = { args: { runs: [] } };
 
 export const SansCardio: Story = { args: { runs: withoutHeartRate(lastDays(90)) } };
+
+/** Format `2:1` : moyenne et courbe de la fréquence cardiaque par séance. */
+export const Large: Story = { args: { size: '2:1' } };
+
+export const LargeSansCardio: Story = { args: { size: '2:1', runs: withoutHeartRate(lastDays(90)) } };
