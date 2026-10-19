@@ -14,6 +14,9 @@
   --heat-2: #FFA57A;
   --heat-3: #FC6A2A;
   --heat-4: #C83A00;
+  /* Heatmap de la carte : palette magma, du moins au plus fréquenté. Sur fond clair, sa moitié sombre,
+     inversée : les passages fréquents sont les plus foncés. Ses extrêmes, invisibles sur le fond, sont écartés. */
+  --map-heat: #F7705C, #DE4968, #B73779, #8C2981, #641A80, #3B0F70, #1C1044;
   --shadow: 0 1px 2px rgba(27, 26, 25, .04), 0 4px 16px rgba(27, 26, 25, .05);
   --radius: 22px;
   --gap: 14px;
@@ -37,6 +40,8 @@
     --heat-2: #A1400F;
     --heat-3: #E2550F;
     --heat-4: #FF8A4C;
+    /* Sur fond sombre, dans le sens d'origine : les passages fréquents sont les plus lumineux. */
+    --map-heat: #641A80, #8C2981, #B73779, #DE4968, #F7705C, #FE9F6D, #FECF92, #FCFDBF;
     --shadow: 0 1px 2px rgba(0, 0, 0, .3);
     color-scheme: dark;
   }
@@ -652,6 +657,152 @@ main {
   color: var(--muted);
 }
 
+/* ---------- Carte ---------- */
+
+.map-tile { padding: 0; }
+
+/* La carte remplit la tuile et se découpe elle-même (la tuile laisse dépasser en mode édition). */
+.map {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  background: var(--grid);
+  touch-action: none;
+  cursor: grab;
+}
+
+.map.dragging { cursor: grabbing; }
+.map:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* Molette sans Ctrl hors personnalisation : la page défile, on indique comment zoomer. */
+.map-hint {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, .35);
+  color: #fff;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.map-img {
+  position: absolute;
+  width: 256px;
+  height: 256px;
+  max-width: none;
+  user-select: none;
+  /* Fond discret, pour que les tracés ressortent. */
+  filter: grayscale(1) contrast(.85) brightness(1.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  .map-img { filter: grayscale(1) invert(1) brightness(.75) contrast(1.15); }
+}
+
+.map-tracks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Survol de la heatmap : nombre de passages sous le pointeur. */
+.map-tip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 10px));
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--tile);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Légende de la heatmap, en échelle logarithmique comme le dessin. */
+.map-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tile) 88%, transparent);
+  box-shadow: var(--shadow);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.map-legend-ramp {
+  width: 56px;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.map-label,
+.map-attrib,
+.map-controls {
+  position: absolute;
+  background: color-mix(in srgb, var(--tile) 88%, transparent);
+  box-shadow: var(--shadow);
+}
+
+.map-label {
+  top: 12px;
+  left: 12px;
+  max-width: calc(100% - 24px);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-attrib {
+  right: 0;
+  bottom: 0;
+  padding: 1px 8px;
+  border-top-left-radius: 8px;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.map-attrib a { text-decoration: none; }
+.map-attrib a:hover { text-decoration: underline; }
+
+.map-controls {
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.map-controls button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.map-controls button + button { border-top: 1px solid var(--line); }
+.map-controls button:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent); }
+.map-controls button:disabled { color: var(--line); cursor: default; }
+
 /* ---------- Personnalisation ---------- */
 
 .btn-pill {
@@ -684,6 +835,9 @@ main {
 
 /* Le contenu ne réagit plus (liens, survols) : seuls les contrôles d'édition sont actifs. */
 .tile.editable > :not(.tile-edit) { pointer-events: none; user-select: none; }
+/* Sauf la carte, qu'on déplace et zoome en mode édition pour choisir sa vue. */
+.tile.editable > .map,
+.tile.editable > .map-controls { pointer-events: auto; }
 .tile.dragging { opacity: 0.4; }
 .tile.drop-target { outline: 2px solid var(--accent); }
 

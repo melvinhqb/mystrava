@@ -36,7 +36,10 @@ export function Dashboard({ data, period, layout = defaultLayout, editing = fals
 
   const change = (next: DashboardLayout) => onLayoutChange?.(next);
   const move = (from: number, to: number) => change(moveItem(layout, from, to));
-  const resize = (i: number, size: TileSize) => change(layout.map((it, j) => (j === i ? layoutItem(it.block, size) : it)));
+  const resize = (i: number, size: TileSize) =>
+    change(layout.map((it, j) => (j === i ? layoutItem(it.block, size, it.options) : it)));
+  const setOptions = (i: number, options: unknown) =>
+    change(layout.map((it, j) => (j === i ? layoutItem(it.block, itemSize(it), options) : it)));
   const remove = (i: number) => change(layout.filter((_, j) => j !== i));
   const add = (block: BlockId, size: TileSize) => {
     change([...layout, layoutItem(block, size)]);
@@ -61,9 +64,13 @@ export function Dashboard({ data, period, layout = defaultLayout, editing = fals
       <section className={editing ? 'bento editing' : 'bento'}>
         {layout.map((item, i) => {
           // `LayoutItem` garantit que la taille fait partie des formats de ce bloc.
-          const block = blocks[item.block] as unknown as BlockDefinition;
+          const block = blocks[item.block] as unknown as BlockDefinition<TileSize, unknown>;
           const size = itemSize(item);
-          const content = block.render(ctx, size);
+          const content = block.render(ctx, size, {
+            options: item.options,
+            editing,
+            onOptionsChange: (options) => setOptions(i, options),
+          });
           if (!editing) return <Fragment key={item.block}>{content}</Fragment>;
 
           const frame = {

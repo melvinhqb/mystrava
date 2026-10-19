@@ -54,7 +54,10 @@ Défini par `StravaData` dans `src/types/strava.ts` et produit par `scripts/fetc
 
 ```jsonc
 {
-  "athlete": { "id": 1, "firstname": "…", "lastname": "…", "profile": "https://…", "city": "…" },
+  "athlete": {
+    "id": 1, "firstname": "…", "lastname": "…", "profile": "https://…", "city": "…",
+    "cityCenter": [49.05, 2.04]       // centre de la ville (Nominatim), ou null
+  },
   "stats": { "all": Totals, "ytd": Totals, "recent": Totals },
   "runs": [
     {
@@ -65,14 +68,42 @@ Défini par `StravaData` dans `src/types/strava.ts` et produit par `scripts/fetc
       "elevation": 255.6,               // m D+
       "average_speed": 3.034,           // m/s
       "average_heartrate": 159.5,       // ou null
-      "kudos": 6
+      "kudos": 6,
+      "polyline": "o~kiHm…"            // tracé simplifié et rogné (encoded polyline), absent sans GPS
     }
   ],
   "fetchedAt": 1792364030944
 }
 ```
 
-Seuls ces champs sont publiés : ni tracé GPS ni position.
+Seuls ces champs sont publiés. Pour la carte, `scripts/fetch-strava.ts` reprend le tracé simplifié que l'API renvoie
+avec chaque activité (`map.summary_polyline`, sans requête supplémentaire) et **retire ses 300 premiers et derniers
+mètres** (`TRIM_METERS`, `trimEnds` dans `src/lib/polyline.ts`) : les zones de confidentialité Strava ne s'appliquent
+pas aux données lues avec son propre jeton, et le départ est souvent le domicile. Ni la position de départ ni le tracé
+d'une activité privée ne sont publiés.
+
+La ville du profil est convertie en coordonnées par [Nominatim](https://nominatim.org/) (OpenStreetMap), une fois
+par synchronisation. Elle ne sert que de repli à la carte quand aucune sortie n'a de tracé.
+
+## Carte
+
+`MapTile` n'utilise pas non plus de bibliothèque : les tuiles du fond OpenStreetMap
+(`tile.openstreetmap.org`, sans clé d'API, attribution obligatoire) sont des `<img>` placées selon la projection
+Web Mercator (`features/dashboard/lib/map.ts`). Les tracés forment une **heatmap** dessinée sur un canvas
+(`features/dashboard/lib/heatmap.ts`) : chaque pixel compte les sorties qui y passent (une sortie qui repasse sur ses
+pas ne compte qu'une fois), puis prend la couleur de ce nombre, en échelle logarithmique, sur la palette **magma**
+(`--map-heat` dans `global.css`). En thème sombre, elle va du violet au jaune pâle : les passages fréquents sont les
+plus lumineux ; en thème clair, sa moitié sombre est inversée, du corail au violet presque noir : ils sont les plus foncés. Une légende donne le maximum visible et le survol affiche le nombre de
+passages. Le fond est atténué par un filtre CSS, inversé en thème sombre.
+Par défaut, la carte se centre sur la **zone la plus parcourue** de toutes les sorties (`densestCenter`) : les tracés
+sont répartis dans une grille de cases d'environ 3 km, chaque case compte les sorties qui la traversent et la fenêtre
+de 3 × 3 cases qui en totalise le plus l'emporte. Calculé côté navigateur, ce centre ne dépend pas de la période.
+La carte se déplace (glisser, flèches du clavier) et se zoome (+ −, molette) à tout moment :
+
+- hors mode « Personnaliser », c'est de l'exploration, jamais enregistrée ; ⌖ revient à la vue choisie. La molette
+  seule fait défiler la page, il faut Ctrl ou ⌘ pour zoomer (une aide s'affiche) ;
+- en mode personnalisation, la molette zoome directement et la vue est enregistrée dans les réglages de l'emplacement
+  (voir [development.md](development.md#personnaliser-la-disposition)) ; ⌖ revient à la vue par défaut.
 
 ## Graphiques
 

@@ -31,6 +31,7 @@ WORKDIR /app
 # package.json fournit "type": "module" aux scripts TypeScript exécutés par Node.
 COPY --chown=node:node package.json ./
 COPY --chown=node:node scripts/fetch-strava.ts scripts/server.ts ./scripts/
+COPY --chown=node:node src/lib/polyline.ts ./src/lib/
 COPY --from=build --chown=node:node /app/dist ./dist
 USER node
 EXPOSE 8080

@@ -1,8 +1,8 @@
 import type { TileSize } from '@/components/ui';
-import { blocks, type BlockId, type BlockSize } from './blocks';
+import { blocks, type BlockDefinition, type BlockId, type BlockOptions, type BlockSize } from './blocks';
 
-/** Un emplacement de la grille : le bloc à afficher et, si besoin, l'un de ses formats. */
-export type LayoutItem = { [K in BlockId]: { block: K; size?: BlockSize<K> } }[BlockId];
+/** Un emplacement de la grille : le bloc à afficher et, si besoin, l'un de ses formats et ses réglages. */
+export type LayoutItem = { [K in BlockId]: { block: K; size?: BlockSize<K>; options?: BlockOptions<K> } }[BlockId];
 
 /** Disposition du tableau de bord, dans l'ordre de remplissage de la grille (4 colonnes). */
 export type DashboardLayout = readonly LayoutItem[];
@@ -20,6 +20,7 @@ export const defaultLayout: DashboardLayout = [
   { block: 'streak', size: '4:1' },
   { block: 'pace', size: '2:1' },
   { block: 'totals', size: '2:1' },
+  { block: 'map', size: '4:2' },
 ];
 
 /** Anciens identifiants de blocs fusionnés, pour relire les dispositions sauvegardées. */
@@ -39,15 +40,23 @@ export const blockSizes = (block: BlockId): readonly TileSize[] => blocks[block]
 /** Format effectif d'un emplacement : celui demandé, sinon le premier du bloc. */
 export const itemSize = (item: LayoutItem): TileSize => item.size ?? blockSizes(item.block)[0];
 
-/** Emplacement pour `block` au format `size`, ou au format par défaut si le bloc ne le supporte pas. */
-export function layoutItem(block: BlockId, size?: TileSize): LayoutItem {
+/**
+ * Emplacement pour `block` au format `size`, ou au format par défaut si le bloc ne le supporte pas.
+ * Les réglages `options` sont relus par le bloc et ignorés s'ils sont invalides.
+ */
+export function layoutItem(block: BlockId, size?: TileSize, options?: unknown): LayoutItem {
   const sizes = blockSizes(block);
-  return { block, size: size && sizes.includes(size) ? size : sizes[0] } as LayoutItem;
+  const parsed = options === undefined ? undefined : (blocks[block] as BlockDefinition<TileSize, unknown>).parseOptions?.(options);
+  return {
+    block,
+    size: size && sizes.includes(size) ? size : sizes[0],
+    ...(parsed !== undefined && { options: parsed }),
+  } as LayoutItem;
 }
 
 /**
  * Relit une disposition sauvegardée : ignore les blocs inconnus et les doublons,
- * ramène les formats non supportés au format par défaut. Null si ce n'est pas une liste.
+ * ramène les formats non supportés au format par défaut et oublie les réglages invalides. Null si ce n'est pas une liste.
  */
 export function parseLayout(value: unknown): DashboardLayout | null {
   if (!Array.isArray(value)) return null;
@@ -57,7 +66,7 @@ export function parseLayout(value: unknown): DashboardLayout | null {
     const block: unknown = Object.hasOwn(RENAMED, v?.block) ? RENAMED[v.block] : v?.block;
     if (!isBlockId(block) || seen.has(block)) continue;
     seen.add(block);
-    items.push(layoutItem(block, v.size));
+    items.push(layoutItem(block, v.size, v.options));
   }
   return items;
 }

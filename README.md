@@ -27,9 +27,11 @@ jamais commitées dans le dépôt, et aucun secret ni connexion n'est nécessair
 - **Régularité** : semaines consécutives avec au moins une sortie
 - **Calendrier** des sorties sur un an, jours de sortie préférés, répartition des distances
 - **Dernières sorties** (liens vers Strava) et totaux de l'athlète
+- **Carte des sorties** : heatmap des tracés de la période (nombre de passages) sur un fond OpenStreetMap, centrés sur la zone la plus parcourue
 - **Données de démo** en dev : sans `data.json` local, l'app affiche des données fictives
 
-Seules les activités `Run`, `TrailRun` et `VirtualRun` publiques sont prises en compte, sans tracé GPS ni position.
+Seules les activités `Run`, `TrailRun` et `VirtualRun` publiques sont prises en compte. Les tracés GPS publiés sont
+simplifiés et privés de leurs 300 premiers et derniers mètres, pour ne pas révéler les lieux de départ et d'arrivée.
 
 ## Stack
 

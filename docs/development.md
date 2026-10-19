@@ -123,7 +123,16 @@ de la modifier à la manière d'un écran d'accueil de téléphone :
 
 - **×** retire un widget, la tuile **+ Ajouter un widget** ouvre le catalogue des widgets absents, dans chacun de leurs formats ;
 - les tuiles se déplacent par glisser-déposer, ou avec les flèches ← → de leur barre d'outils ;
-- les boutons ↔ − + et ↕ − + passent au format voisin en largeur ou en hauteur, parmi ceux que le bloc supporte.
+- les boutons ↔ − + et ↕ − + passent au format voisin en largeur ou en hauteur, parmi ceux que le bloc supporte ;
+- la **carte** se déplace (glisser ou flèches du clavier) et se zoome (molette, + −) : la vue affichée devient sa vue par défaut ; ⌖ revient au centre automatique, la zone la plus parcourue. Hors personnalisation, la carte s'explore aussi, sans rien enregistrer.
+
+Un bloc peut ainsi avoir des **réglages** propres à son emplacement (`options` dans la disposition, typés par bloc) :
+il les déclare avec `parseOptions` dans `blocks.tsx`, qui relit aussi les sauvegardes, et les reçoit dans `render`
+avec `editing` et `onOptionsChange`.
+
+```ts
+{ block: 'map', size: '4:2', options: { center: [49.05, 2.04], zoom: 13 } }
+```
 
 Cette disposition personnalisée est enregistrée dans le navigateur (`localStorage`, clé `running.layout`) ;
 **Réinitialiser** revient à `defaultLayout`. Une sauvegarde est relue avec tolérance (`parseLayout`) :
@@ -140,6 +149,7 @@ et **large** (`2:2`, + des détails), quand son contenu s'y prête.
 | `kpi-time` | `1:1` | `distance-buckets` | `1:1` |
 | `kpi-elevation` | `1:1` | `recent-runs` | `2:2` |
 | `records` | `1:2` | `totals` | `2:1` |
+| `map` | `2:2`, `1:1`, `4:2` | | |
 
 ## Qualité
 

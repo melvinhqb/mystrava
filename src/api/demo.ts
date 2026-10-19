@@ -1,7 +1,32 @@
 // Données de démonstration : ~2 ans de course à pied générés de façon déterministe,
 // au même format que data.json. Utilisées en dev quand data.json est absent, et par les stories Storybook.
 
-import type { RawRun, StravaData, Totals } from '@/types/strava';
+import { encodePolyline } from '@/lib/polyline';
+import type { LatLng, RawRun, StravaData, Totals } from '@/types/strava';
+
+const PARIS: LatLng = [48.8566, 2.3522];
+/** Points de départ des tracés de démo : centre, bois de Boulogne, bois de Vincennes, parc de Saint-Cloud. */
+const SPOTS: LatLng[] = [[48.853, 2.345], [48.862, 2.25], [48.835, 2.435], [48.84, 2.215]];
+
+/** Boucle de démo d'environ `meters` autour d'un des SPOTS, de forme irrégulière. */
+function demoRoute(meters: number, rand: () => number): string {
+  const [lat0, lng0] = SPOTS[Math.floor(rand() * SPOTS.length)];
+  const radius = meters / (2 * Math.PI);
+  const angle = rand() * 2 * Math.PI;
+  const [k1, k2, p1, p2] = [0.15 + rand() * 0.25, rand() * 0.15, rand() * 6, rand() * 6];
+  // Le départ est sur la boucle : son centre est décalé d'un rayon dans la direction `angle`.
+  const cy = Math.sin(angle) * radius;
+  const cx = Math.cos(angle) * radius;
+  const mPerLat = 111320;
+  const mPerLng = mPerLat * Math.cos((lat0 * Math.PI) / 180);
+  const points: LatLng[] = [];
+  for (let i = 0; i <= 80; i++) {
+    const t = angle + Math.PI + (i / 80) * 2 * Math.PI;
+    const r = radius * (1 + k1 * Math.sin(3 * (t - angle - Math.PI) + p1) * Math.sin((t - angle - Math.PI) / 2) + k2 * Math.sin(7 * t + p2));
+    points.push([lat0 + (cy + Math.sin(t) * r) / mPerLat, lng0 + (cx + Math.cos(t) * r) / mPerLng]);
+  }
+  return encodePolyline(points);
+}
 
 export function makeDemoData(): StravaData {
   let seed = 42;
@@ -60,6 +85,14 @@ export function makeDemoData(): StravaData {
   }
   runs.reverse(); // plus récentes d'abord, comme l'API Strava
 
+  // Tracés générés avec leur propre suite aléatoire, pour ne pas modifier les autres données.
+  let routeSeed = 7;
+  const routeRand = (): number => {
+    routeSeed = (routeSeed * 1664525 + 1013904223) % 4294967296;
+    return routeSeed / 4294967296;
+  };
+  for (const run of runs) run.polyline = demoRoute(run.distance, routeRand);
+
   const totals = (list: RawRun[]): Totals => ({
     count: list.length,
     distance: list.reduce((s, r) => s + r.distance, 0),
@@ -70,7 +103,7 @@ export function makeDemoData(): StravaData {
   const yearStart = `${today.getFullYear()}-01-01`;
 
   return {
-    athlete: { firstname: 'Coureur', lastname: 'Démo', profile: null, city: 'Paris' },
+    athlete: { firstname: 'Coureur', lastname: 'Démo', profile: null, city: 'Paris', cityCenter: PARIS },
     stats: {
       all: totals(runs),
       ytd: totals(runs.filter((r) => r.date >= yearStart)),
