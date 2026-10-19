@@ -3,12 +3,18 @@
 # grâce aux secrets STRAVA_* fournis au lancement du conteneur.
 
 # ---------- Build ----------
-FROM node:24-alpine AS build
+# Le résultat (HTML/JS/CSS) ne dépend pas de l'architecture : on construit une seule fois, sur la
+# plateforme de la machine de build ($BUILDPLATFORM), au lieu de relancer npm ci en émulation QEMU.
+FROM --platform=$BUILDPLATFORM node:24-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 RUN npm run build && rm -f dist/data.json
+
+# ---------- Binaire Node de l'architecture cible ----------
+# Simple extraction de fichier : aucune commande n'y est exécutée, donc pas d'émulation.
+FROM node:24-alpine AS node
 
 # ---------- Exécution ----------
 # Alpine nu + binaire Node seul : ni npm ni yarn, image plus légère que node:24-alpine.
@@ -16,7 +22,7 @@ RUN npm run build && rm -f dist/data.json
 FROM alpine:3.24
 RUN apk add --no-cache libstdc++ \
  && addgroup -S node && adduser -S -G node node
-COPY --from=build /usr/local/bin/node /usr/local/bin/node
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
 ENV NODE_ENV=production \
     PORT=8080 \
     STATIC_DIR=/app/dist \
