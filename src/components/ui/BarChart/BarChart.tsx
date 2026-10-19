@@ -30,6 +30,8 @@ export function BarChart({ items, labelEvery = 1, showValues = false, format = S
     const max = Math.max(...items.map((i) => i.value));
     const slot = w / items.length;
     const bw = Math.max(4, Math.min(slot * 0.62, 42));
+    // Étiquettes resserrées quand chaque barre dispose de peu de place (tuile 1:1 sur mobile).
+    const labelStyle = slot < 28 ? { fontSize: 8 } : slot < 34 ? { fontSize: 9 } : undefined;
     const ch = h - top - bottom;
     svg = (
       <svg viewBox={`0 0 ${w} ${h}`} role="img">
@@ -46,7 +48,7 @@ export function BarChart({ items, labelEvery = 1, showValues = false, format = S
               {showValues && it.value > 0 && (it.value === max || i === items.length - 1) && (
                 <text className="value-label" x={x + bw / 2} y={y - 5} textAnchor="middle">{format(it.value)}</text>
               )}
-              {i % every === 0 && <text x={x + bw / 2} y={h - 4} textAnchor="middle">{it.label}</text>}
+              {i % every === 0 && <text x={x + bw / 2} y={h - 4} textAnchor="middle" style={labelStyle}>{it.label}</text>}
             </g>
           );
         })}

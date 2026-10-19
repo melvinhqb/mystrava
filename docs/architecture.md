@@ -29,7 +29,7 @@ Le code suit une organisation **par fonctionnalité** (*feature-based*), courant
 | `src/hooks/` | Hooks partagés (`useElementSize`, `usePersistentState`, `useStravaData`) | `api`, `lib`, `types` |
 | `src/components/ui/` | Briques visuelles génériques, sans logique métier | `hooks`, `lib` |
 | `src/components/layout/` | Structure de page | `ui`, `lib`, `types` |
-| `src/features/dashboard/` | Tuiles du tableau de bord (`components/`) et calculs (`lib/stats.ts`) | tout ce qui précède |
+| `src/features/dashboard/` | Tuiles du tableau de bord (`components/`), catalogue des blocs et formats (`blocks.tsx`), disposition (`layout.ts`) et calculs (`lib/stats.ts`) | tout ce qui précède |
 | `src/app/` | Composant racine : état de chargement, période, assemblage | tout |
 
 Règles :
@@ -43,8 +43,8 @@ Règles :
 
 1. `useStravaData` charge `data.json` ; en dev, s'il est absent, il se rabat sur `makeDemoData()`.
 2. `toDashboardData` ajoute `startDate` (date locale) à chaque sortie et les trie de la plus récente à la plus ancienne.
-3. `App` gère la période choisie (mémorisée dans `localStorage`) et passe les données à `Dashboard`.
-4. `Dashboard` découpe les sorties selon la période (`splitByPeriod`) :
+3. `App` gère la période choisie et la disposition personnalisée (`useDashboardLayout`), toutes deux mémorisées dans `localStorage`, et passe les données à `Dashboard`.
+4. `Dashboard` découpe les sorties selon la période (`splitByPeriod`) puis rend les blocs de `layout.ts` dans l'ordre :
    - les tuiles liées à la période reçoivent les sorties de la période (et de la précédente pour les comparaisons) ;
    - les tendances (semaines, mois, calendrier, dernières sorties) reçoivent toutes les sorties.
 

@@ -120,6 +120,15 @@ export function averageHeartRate(runs: Run[]) {
   return { bpm, count: withHr.length };
 }
 
+/** Fréquence cardiaque moyenne des `limit` dernières sorties qui en ont une, de la plus ancienne à la plus récente. */
+export function heartRateSeries(runs: Run[], limit = 30) {
+  return runs
+    .filter((r) => r.average_heartrate)
+    .slice(0, limit)
+    .reverse()
+    .map((r) => ({ run: r, bpm: r.average_heartrate! }));
+}
+
 /** Nombre de sorties par jour de la semaine, lundi d'abord. */
 export function weekdayCounts(runs: Run[]): number[] {
   const counts = Array<number>(7).fill(0);
@@ -139,6 +148,14 @@ export function distanceBuckets(runs: Run[]) {
   const buckets = BUCKETS.map((b) => ({ ...b, count: 0 }));
   for (const r of runs) buckets.find((b) => r.distance < b.max)!.count++;
   return buckets;
+}
+
+/** Allure moyenne (s/km, NaN si vide) et nombre de sorties par tranche de distance. */
+export function paceByDistance(runs: Run[]) {
+  return BUCKETS.map((b, i) => {
+    const inBucket = runs.filter((r) => r.distance < b.max && r.distance >= (BUCKETS[i - 1]?.max ?? 0));
+    return { label: b.label, pace: paceOf(inBucket), count: inBucket.length };
+  });
 }
 
 /** Distance courue par jour (clé : minuit local). */

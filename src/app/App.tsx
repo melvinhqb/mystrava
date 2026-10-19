@@ -1,6 +1,13 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Footer, Topbar, WelcomeScreen } from '@/components/layout';
-import { Dashboard, DEFAULT_PERIOD, isPeriod, PeriodSelector } from '@/features/dashboard';
+import {
+  Dashboard,
+  DEFAULT_PERIOD,
+  isPeriod,
+  LayoutControls,
+  PeriodSelector,
+  useDashboardLayout,
+} from '@/features/dashboard';
 import { usePersistentState } from '@/hooks/usePersistentState';
 import { useStravaData } from '@/hooks/useStravaData';
 import { athleteName } from '@/lib/athlete';
@@ -8,6 +15,8 @@ import { athleteName } from '@/lib/athlete';
 export function App() {
   const state = useStravaData();
   const [period, setPeriod] = usePersistentState('running.period', DEFAULT_PERIOD, isPeriod);
+  const { layout, setLayout, reset } = useDashboardLayout();
+  const [editing, setEditing] = useState(false);
   const data = state.status === 'ready' ? state.data : null;
 
   useEffect(() => {
@@ -26,13 +35,18 @@ export function App() {
       <Topbar
         athlete={data?.athlete}
         demo={data?.demo}
-        actions={data && <PeriodSelector value={period} onChange={setPeriod} />}
+        actions={data && (
+          <>
+            <PeriodSelector value={period} onChange={setPeriod} />
+            <LayoutControls editing={editing} onEditingChange={setEditing} onReset={reset} />
+          </>
+        )}
       />
       <main>
         {state.status === 'loading' && <p className="status" role="status">Chargement…</p>}
         {state.status === 'error' && <p className="status" role="status">{state.message}</p>}
         {state.status === 'empty' && <WelcomeScreen />}
-        {data && <Dashboard data={data} period={period} />}
+        {data && <Dashboard data={data} period={period} layout={layout} editing={editing} onLayoutChange={setLayout} />}
       </main>
       <Footer info={footerInfo} />
     </>
