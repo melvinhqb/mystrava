@@ -51,7 +51,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Créer la release GitHub
+      # La release peut déjà exister si elle a été créée depuis l'interface GitHub (ce qui crée aussi le tag) :
+      # on complète alors sa description au lieu d'échouer.
+      - name: Créer ou compléter la release GitHub
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
@@ -66,4 +68,14 @@ jobs:
 
           Voir [docs/docker.md](https://github.com/${{ github.repository }}/blob/$TAG/docs/docker.md) pour la lancer.
           NOTES
-          gh release create "$TAG" --title "$TAG" --notes-file notes.md --generate-notes
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release view "$TAG" --json body --jq .body > current.md
+            if grep -q '^## Image Docker' current.md; then
+              echo "La release $TAG mentionne déjà l'image Docker."
+            else
+              { cat current.md; echo; cat notes.md; } > merged.md
+              gh release edit "$TAG" --notes-file merged.md
+            fi
+          else
+            gh release create "$TAG" --title "$TAG" --notes-file notes.md --generate-notes
+          fi
