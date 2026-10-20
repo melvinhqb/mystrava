@@ -26,6 +26,7 @@ interface StravaActivity {
   average_heartrate?: number;
   kudos_count: number;
   private?: boolean;
+  visibility?: 'everyone' | 'followers_only' | 'only_me';
   map?: { summary_polyline?: string | null };
 }
 
@@ -113,6 +114,8 @@ export async function syncStrava(output: string): Promise<number> {
     const batch = await get<StravaActivity[]>(`/athlete/activities?per_page=200&page=${page}`);
     for (const a of batch) {
       if (!RUN_TYPES.has(a.sport_type || a.type)) continue;
+      // Le scope activity:read renvoie aussi les sorties « Abonnés » : seules celles visibles par tous sont publiées.
+      if (a.visibility !== 'everyone') continue;
       // Seuls les champs utiles à l'affichage sont publiés : le tracé est rogné, la position de départ omise.
       runs.push({
         id: a.id,

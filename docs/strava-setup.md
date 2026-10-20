@@ -2,6 +2,9 @@
 
 La GitHub Action « Déploiement GitHub Pages » a besoin de trois secrets pour interroger l'API.
 
+> [!IMPORTANT]
+> Ces étapes nécessitent un **abonnement Strava payant**.
+
 ## 1. Créer une application Strava
 
 Sur <https://www.strava.com/settings/api>, créez une application avec `localhost` comme

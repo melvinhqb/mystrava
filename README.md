@@ -9,8 +9,6 @@
 [![Déploiement](https://github.com/melvinhqb/mystrava/actions/workflows/deploy.yml/badge.svg)](https://github.com/melvinhqb/mystrava/actions/workflows/deploy.yml)
 [![Release](https://img.shields.io/github/v/release/melvinhqb/mystrava)](https://github.com/melvinhqb/mystrava/releases)
 
-[Site](https://melvinhqb.github.io/mystrava/) · [Storybook](https://melvinhqb.github.io/mystrava/storybook/)
-
 </div>
 
 ---
@@ -18,6 +16,15 @@
 Une page statique en style **bento**, responsive, claire ou sombre selon le système, aux couleurs de Strava (`#FC4C02`).
 Les données sont récupérées deux fois par jour par une GitHub Action au moment du déploiement : elles ne sont
 jamais commitées dans le dépôt, et aucun secret ni connexion n'est nécessaire côté visiteur.
+
+## Prérequis
+
+> [!IMPORTANT]
+> **Un abonnement Strava payant est nécessaire** pour utiliser ce projet avec ses propres données.
+
+- un compte **Strava avec abonnement payant** ;
+- **Node.js ≥ 20.19** (22 recommandé, voir `.nvmrc`) pour le développement, ou Docker ;
+- un dépôt GitHub (GitHub Pages et Actions) pour le déploiement automatique.
 
 ## Fonctionnalités
 
@@ -30,7 +37,8 @@ jamais commitées dans le dépôt, et aucun secret ni connexion n'est nécessair
 - **Carte des sorties** : heatmap des tracés de la période (nombre de passages) sur un fond OpenStreetMap, centrés sur la zone la plus parcourue
 - **Données de démo** en dev : sans `data.json` local, l'app affiche des données fictives
 
-Seules les activités `Run`, `TrailRun` et `VirtualRun` publiques sont prises en compte. Les tracés GPS publiés sont
+Seules les activités `Run`, `TrailRun` et `VirtualRun` visibles par tous sont prises en compte (ni « Abonnés », ni « Moi uniquement »).
+Le site demande aux moteurs de recherche de ne pas le référencer (`noindex`). Les tracés GPS publiés sont
 simplifiés et privés de leurs 300 premiers et derniers mètres, pour ne pas révéler les lieux de départ et d'arrivée.
 
 ## Stack
@@ -45,8 +53,6 @@ simplifiés et privés de leurs 300 premiers et derniers mètres, pour ne pas r�
 | Hébergement | GitHub Pages, ou image Docker publiée sur GHCR |
 
 ## Démarrage rapide
-
-Prérequis : **Node.js ≥ 20.19** (22 recommandé, voir `.nvmrc`).
 
 ```sh
 npm install
