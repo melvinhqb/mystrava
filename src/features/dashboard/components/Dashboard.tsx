@@ -1,8 +1,9 @@
-import { Fragment, useMemo, useState, type DragEvent } from 'react';
+import { Fragment, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { TileFrameContext, type TileSize } from '@/components/ui';
 import type { DashboardData, Period } from '@/types/strava';
 import { blocks, type BlockContext, type BlockDefinition, type BlockId } from '../blocks';
 import { blockSizes, defaultLayout, itemSize, layoutItem, type DashboardLayout } from '../layout';
+import { useTileReorder } from '../hooks/useTileReorder';
 import { moveItem } from '../lib/layoutEditing';
 import { periodBounds, periodSpanDays, splitByPeriod } from '../lib/stats';
 import { AddWidgetDialog, AddWidgetTile } from './AddWidget';
@@ -30,8 +31,6 @@ export function Dashboard({ data, period, layout = defaultLayout, editing = fals
     return { data, period, all, ...split, spanDays: periodSpanDays(split.runs, bounds) };
   }, [data, all, period]);
 
-  const [dragged, setDragged] = useState<number | null>(null);
-  const [over, setOver] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
 
   const change = (next: DashboardLayout) => onLayoutChange?.(next);
@@ -45,24 +44,27 @@ export function Dashboard({ data, period, layout = defaultLayout, editing = fals
     change([...layout, layoutItem(block, size)]);
     setAdding(false);
   };
-  const endDrag = () => {
-    setDragged(null);
-    setOver(null);
-  };
+  const grid = useRef<HTMLElement>(null);
+  const { reorder, onPointerDown } = useTileReorder(grid, layout.map((it) => it.block), move, editing);
 
   if (!editing && layout.length === 0) {
     return <p className="status">Aucun widget affiché : utilisez « Personnaliser » pour en ajouter.</p>;
   }
 
-  const shown = new Set(layout.map((it) => it.block));
+  const present = new Set(layout.map((it) => it.block));
   const choices = (Object.keys(blocks) as BlockId[])
-    .filter((id) => !shown.has(id))
+    .filter((id) => !present.has(id))
     .map((id) => ({ block: id, label: blocks[id].label, sizes: blockSizes(id) }));
+
+  // Pendant un déplacement, la tuile saisie occupe déjà sa place provisoire et les autres se décalent.
+  const shown = reorder ? moveItem(layout, reorder.from, reorder.to) : layout;
+  const classes = ['bento', editing && 'editing', reorder && 'reordering'].filter(Boolean).join(' ');
 
   return (
     <>
-      <section className={editing ? 'bento editing' : 'bento'}>
-        {layout.map((item, i) => {
+      <section ref={grid} className={classes}>
+        {shown.map((item) => {
+          const i = layout.indexOf(item);
           // `LayoutItem` garantit que la taille fait partie des formats de ce bloc.
           const block = blocks[item.block] as unknown as BlockDefinition<TileSize, unknown>;
           const size = itemSize(item);
@@ -74,28 +76,10 @@ export function Dashboard({ data, period, layout = defaultLayout, editing = fals
           if (!editing) return <Fragment key={item.block}>{content}</Fragment>;
 
           const frame = {
-            className: ['editable', i === dragged && 'dragging', i === over && i !== dragged && 'drop-target']
-              .filter(Boolean)
-              .join(' '),
+            className: item.block === reorder?.key ? 'editable dragging' : 'editable',
             props: {
-              draggable: true,
-              onDragStart: (e: DragEvent) => {
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', item.block);
-                setDragged(i);
-              },
-              onDragOver: (e: DragEvent) => {
-                if (dragged === null) return;
-                e.preventDefault();
-                setOver(i);
-              },
-              onDragLeave: () => setOver((o) => (o === i ? null : o)),
-              onDrop: (e: DragEvent) => {
-                e.preventDefault();
-                if (dragged !== null && dragged !== i) move(dragged, i);
-                endDrag();
-              },
-              onDragEnd: endDrag,
+              'data-block': item.block,
+              onPointerDown: (e: PointerEvent<HTMLElement>) => onPointerDown(e, i),
             },
             overlay: (
               <TileEditor

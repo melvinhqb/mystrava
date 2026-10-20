@@ -122,7 +122,7 @@ ne supporte pas. Sur tablette et mobile, les tuiles larges sont ramenées à la 
 de la modifier à la manière d'un écran d'accueil de téléphone :
 
 - **×** retire un widget, la tuile **+ Ajouter un widget** ouvre le catalogue des widgets absents, dans chacun de leurs formats ;
-- les tuiles se déplacent par glisser-déposer, ou avec les flèches ← → de leur barre d'outils ;
+- on saisit un widget (à la souris, ou par un appui maintenu au doigt) et on le fait glisser ; il suit le pointeur et prend la place du widget survolé, les autres se décalent en direct. Échap annule. Les flèches ← → de leur barre d'outils permettent aussi de les déplacer ;
 - les boutons ↔ − + et ↕ − + passent au format voisin en largeur ou en hauteur, parmi ceux que le bloc supporte ;
 - la **carte** se déplace (glisser ou flèches du clavier) et se zoome (molette, + −) : la vue affichée devient sa vue par défaut ; ⌖ revient au centre automatique, la zone la plus parcourue. Hors personnalisation, la carte s'explore aussi, sans rien enregistrer.
 
