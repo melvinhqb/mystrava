@@ -82,6 +82,9 @@ mètres** (`TRIM_METERS`, `trimEnds` dans `src/lib/polyline.ts`) : les zones de 
 pas aux données lues avec son propre jeton, et le départ est souvent le domicile. Ni la position de départ ni le tracé
 d'une activité privée ne sont publiés.
 
+Seules les sorties visibles par tous (`visibility: "everyone"`) sont publiées : le scope `activity:read` renvoie aussi
+les sorties « Abonnés ».
+
 La ville du profil est convertie en coordonnées par [Nominatim](https://nominatim.org/) (OpenStreetMap), une fois
 par synchronisation. Elle ne sert que de repli à la carte quand aucune sortie n'a de tracé.
 

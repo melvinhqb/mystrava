@@ -46,6 +46,9 @@ if (hasStravaSecrets()) {
 
 // ---------- Fichiers statiques ----------
 
+// Site personnel : aucune réponse ne doit être référencée par les moteurs de recherche, y compris data.json.
+const NO_INDEX = { 'X-Robots-Tag': 'noindex, nofollow, noarchive, nosnippet, noimageindex' };
+
 // Les fichiers de assets/ ont un hash dans leur nom : ils peuvent être mis en cache indéfiniment.
 const cacheControl = (path: string) =>
   path.includes(`${sep}assets${sep}`) ? 'public, max-age=31536000, immutable' : 'no-cache';
@@ -53,17 +56,17 @@ const cacheControl = (path: string) =>
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', 'http://localhost');
   if (url.pathname === '/healthz') {
-    res.writeHead(200, { 'Content-Type': 'text/plain' }).end('ok');
+    res.writeHead(200, { ...NO_INDEX, 'Content-Type': 'text/plain' }).end('ok');
     return;
   }
   if (req.method !== 'GET' && req.method !== 'HEAD') {
-    res.writeHead(405, { Allow: 'GET, HEAD' }).end();
+    res.writeHead(405, { ...NO_INDEX, Allow: 'GET, HEAD' }).end();
     return;
   }
 
   let path = normalize(join(ROOT, decodeURIComponent(url.pathname)));
   if (path !== ROOT && !path.startsWith(ROOT + sep)) {
-    res.writeHead(403).end();
+    res.writeHead(403, NO_INDEX).end();
     return;
   }
   try {
@@ -73,6 +76,7 @@ const server = createServer(async (req, res) => {
       info = await stat(path);
     }
     res.writeHead(200, {
+      ...NO_INDEX,
       'Content-Type': MIME[extname(path)] ?? 'application/octet-stream',
       'Content-Length': info.size,
       'Last-Modified': info.mtime.toUTCString(),
@@ -82,7 +86,7 @@ const server = createServer(async (req, res) => {
     if (req.method === 'HEAD') res.end();
     else createReadStream(path).pipe(res);
   } catch {
-    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('Introuvable');
+    res.writeHead(404, { ...NO_INDEX, 'Content-Type': 'text/plain; charset=utf-8' }).end('Introuvable');
   }
 });
 

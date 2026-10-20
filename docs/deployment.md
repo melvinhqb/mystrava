@@ -39,4 +39,7 @@ Vite est configuré avec `base: './'` : le site fonctionne quel que soit le sous
   après 60 jours sans activité. Comme les données ne sont plus commitées, aucun commit automatique ne
   maintient le dépôt actif ; GitHub envoie un e-mail avant la suspension, et il suffit de réactiver le
   workflow dans l'onglet *Actions*.
-- **Données publiques** : `data.json` reste accessible à quiconque visite le site, comme la page elle-même.
+- **Données publiques** : `data.json` reste accessible à quiconque connaît l'URL, comme la page elle-même.
+- **Référencement** : la page et Storybook portent `<meta name="robots" content="noindex…">`. C'est une demande,
+  respectée par les grands moteurs, pas une protection : GitHub Pages ne permet ni authentification ni en-tête
+  `X-Robots-Tag` (l'image Docker l'envoie, elle). Ne mettez pas l'URL du site en page d'accueil du dépôt public.
